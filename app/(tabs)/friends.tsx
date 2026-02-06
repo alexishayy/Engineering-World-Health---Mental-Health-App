@@ -26,7 +26,8 @@ export default function FriendsScreen() {
     //TITLE
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.headerText}>Friends Screen</Text>
+        <View style={styles.headerBlock} />
+        <Text style={styles.headerText}>Add A Friend!</Text>
         {/*FRIEND SEARCH BAR*/}
         <View style={styles.searchContainer}>
           <TextInput
@@ -40,26 +41,17 @@ export default function FriendsScreen() {
       </View>
       <View style={styles.body}> 
       {/*FRIENDS LIST */}
-        <FlatList
-          data={filterFriends}
+         <FlatList
+          data={friendData}
           keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => {
-            const firstElem = index == 0;
-            const lastElem = index == friendData.length - 1;
-            return(
-            <View style={[
-              styles.friendItem,
-              firstElem && styles.firstItem,
-              lastElem && styles.lastItem,
-              !lastElem && { borderBottomWidth: 1, borderBottomColor: '#eee'}
-            ]}>
+          renderItem={({ item }) => (
+            <View style={styles.friendItem}>
               <View style={styles.avatarPlaceholder} />
               <View>
                 <Text style={styles.friendName}>{item.name}</Text>
               </View>
             </View>
-          );
-        }}
+          )}
           contentContainerStyle={styles.listContainer}
         />
       </View>
@@ -75,21 +67,40 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
+    zIndex: 1,
+  },
+  headerBlock: {
+    position: 'absolute',
+    top: 32,
+    left: 30,
+    right: 35,
+    height: 140,
+    borderRadius: 30,
+    backgroundColor: '#bdbdbd',
+    borderBlockColor: '#0a0909',
+    borderWidth: 1.5,
+    zIndex: -1,
   },
   headerText: {
     color: "white",
     fontSize: 22,
     fontWeight: "800",
+    top: 40,
+    left: 35,
   },
   body: {
     flex: 1,
   },
   searchContainer: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 50,
     marginVertical: 10,
     paddingHorizontal: 20,
-    height: 60,
+    top: 50,
+    left:30,
+    right:60,
+    height: 45,
+    width: 300,
     justifyContent: 'center',
   },
   searchInput: {
@@ -100,18 +111,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "white",
-    padding: 15,
-    marginHorizontal: 20,
-  },
-  firstItem: {
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    marginTop: 10,
-  },
-  lastItem: {
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
-    marginTop: 0,
+    top: 70,
+    left: 25,
+    right: 25,
+    padding: 13,
+    borderRadius: 30,
+    marginBottom: 10,
+    width: 300,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   avatarPlaceholder: {
     width: 50,
@@ -119,6 +130,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     backgroundColor: "#ccc",
     marginRight: 15,
+    padding:5,
   },
   friendName: {
     fontSize: 18,
@@ -126,7 +138,6 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   listContainer: {
-    paddingVertical: 10,
-    paddingBottom: 40,
+    padding: 20,
   },
 });
