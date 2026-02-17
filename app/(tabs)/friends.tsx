@@ -25,6 +25,12 @@ export default function FriendsScreen() {
   return (
     //TITLE
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <View style={styles.topBar}>
+              <View style={styles.avatarDot} />
+              <View style={styles.streakPill}>
+                <Text style={styles.streakText}>🔥 Streak : 12</Text>
+              </View>
+            </View>
       <View style={styles.header}>
         <View style={styles.headerBlock} />
         <Text style={styles.headerText}>Add A Friend!</Text>
@@ -40,6 +46,9 @@ export default function FriendsScreen() {
         </View>
       </View>
       <View style={styles.body}> 
+        <Text style={styles.listHeaderText}>
+          Your Friends ({filterFriends.length})
+        </Text>
       {/*FRIENDS LIST */}
          <FlatList
           data={friendData}
@@ -62,7 +71,34 @@ export default function FriendsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#4f8f52",
+    backgroundColor: "#F6F2E6",
+  },
+  topBar: {
+    height: 64,
+    backgroundColor: "#3E5870",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  avatarDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "white",
+  },
+  streakPill: {
+    borderWidth: 1,
+    borderColor: "#C9C2B6",
+    backgroundColor: "#FBF7EF",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  streakText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1B1B1B",
   },
   header: {
     paddingHorizontal: 16,
@@ -76,24 +112,34 @@ const styles = StyleSheet.create({
     right: 35,
     height: 140,
     borderRadius: 30,
-    backgroundColor: '#bdbdbd',
+    backgroundColor: "white",
     borderBlockColor: '#0a0909',
     borderWidth: 1.5,
     zIndex: -1,
   },
   headerText: {
-    color: "white",
+    color: '#0a0909',
     fontSize: 22,
     fontWeight: "800",
     top: 40,
     left: 35,
+  },
+  listHeaderText: {
+    fontSize: 30,
+    fontWeight: "700",
+    marginBottom: 15,
+    marginLeft: 40,
+    marginTop: 60,
+    color: '#0a0909'
   },
   body: {
     flex: 1,
   },
   searchContainer: {
     backgroundColor: '#fff',
+    borderBlockColor: '#0a0909',
     borderRadius: 50,
+    borderWidth: 1.5,
     marginVertical: 10,
     paddingHorizontal: 20,
     top: 50,
@@ -110,7 +156,9 @@ const styles = StyleSheet.create({
   friendItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
+    backgroundColor: '#ebeeef',
+    borderBlockColor: "black",
+    borderWidth: 1.2,
     top: 70,
     left: 25,
     right: 25,
