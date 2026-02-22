@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import { FlatList, ImageBackground, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 //dummy data
@@ -23,7 +23,12 @@ export default function FriendsScreen() {
   setFilterFriends(filtered);
   }
   return (
-    //TITLE
+    <ImageBackground
+      source={require("../../assets/images/bg.jpg")} 
+      style={{ flex: 1 }}
+      resizeMode="cover"
+    >
+
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.topBar}>
               <View style={styles.avatarDot} />
@@ -65,13 +70,14 @@ export default function FriendsScreen() {
         />
       </View>
     </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#F6F2E6",
+    backgroundColor: "transparent",
   },
   topBar: {
     height: 64,
@@ -112,8 +118,10 @@ const styles = StyleSheet.create({
     right: 35,
     height: 140,
     borderRadius: 30,
-    backgroundColor: "white",
-    borderBlockColor: '#0a0909',
+    backgroundColor: "#edf3fa",
+    borderBlockColor: '#b9b9b9',
+    borderLeftColor: '#b9b9b9',
+    borderRightColor: '#b9b9b9',
     borderWidth: 1.5,
     zIndex: -1,
   },
@@ -127,9 +135,9 @@ const styles = StyleSheet.create({
   listHeaderText: {
     fontSize: 30,
     fontWeight: "700",
-    marginBottom: 15,
     marginLeft: 40,
-    marginTop: 60,
+    marginTop: 70,
+    marginBottom: 20,
     color: '#0a0909'
   },
   body: {
@@ -137,7 +145,9 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     backgroundColor: '#fff',
-    borderBlockColor: '#0a0909',
+    borderBlockColor: '#b9b9b9',
+    borderLeftColor: '#b9b9b9',
+    borderRightColor: '#b9b9b9',
     borderRadius: 50,
     borderWidth: 1.5,
     marginVertical: 10,
@@ -156,10 +166,11 @@ const styles = StyleSheet.create({
   friendItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: '#ebeeef',
-    borderBlockColor: "black",
+    backgroundColor: "#ecf5ff",
+    borderBlockColor: '#b9b9b9',
+    borderLeftColor: '#b9b9b9',
+    borderRightColor: '#b9b9b9',
     borderWidth: 1.2,
-    top: 70,
     left: 25,
     right: 25,
     padding: 13,
@@ -186,6 +197,9 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   listContainer: {
-    padding: 20,
+    height: 100,
+    paddingTop: 5,
+    paddingHorizontal: 15,
+
   },
 });
