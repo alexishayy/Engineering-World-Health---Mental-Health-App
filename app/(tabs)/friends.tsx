@@ -1,117 +1,288 @@
-import React, { useState } from 'react';
-import { FlatList, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import {
+  FlatList,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-//dummy data
+// dummy data
 const friendData = [
-  {id: '1', name: 'Username1'},
-  {id: '2', name: 'Username2'},
-  {id: '3', name: 'Username3'},
-  {id: '4', name: 'Username4'},
-  {id: '5', name: 'Username5'},
-  {id: '6', name: 'Username6'}
+  { id: "1", name: "Username1" },
+  { id: "2", name: "Username2" },
+  { id: "3", name: "Username3" },
+  { id: "4", name: "Username4" },
+  { id: "5", name: "Username5" },
+  { id: "6", name: "Username6" },
 ];
-export default function FriendsScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterFriends, setFilterFriends] = useState(friendData);
 
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    const filtered = friendData.filter((friend) =>
-    friend.name.toLowerCase().includes(text.toLowerCase())
-  );
-  setFilterFriends(filtered);
-  }
+type Friend = { id: string; name: string };
+
+export default function FriendsScreen() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [friends, setFriends] = useState<Friend[]>(friendData);
+
+  // remove-friend modal state
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+
+  const filteredFriends = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return friends;
+    return friends.filter((f) => f.name.toLowerCase().includes(q));
+  }, [friends, searchQuery]);
+
+  const listRef = useRef<FlatList>(null);
+
+  const handleSearch = (text: string) => setSearchQuery(text);
+
+  const handleAddFriend = () => {
+    const name = searchQuery.trim();
+    if (!name) return;
+
+    const exists = friends.some(
+      (f) => f.name.toLowerCase() === name.toLowerCase()
+    );
+    if (exists) return;
+
+    setFriends((prev) => [{ id: String(Date.now()), name }, ...prev]);
+    setSearchQuery("");
+  };
+
+  const openRemoveModal = (friend: Friend) => {
+    setSelectedFriend(friend);
+    setIsRemoveModalOpen(true);
+  };
+
+  const closeRemoveModal = () => {
+    setIsRemoveModalOpen(false);
+    setSelectedFriend(null);
+  };
+
+  const removeSelectedFriend = () => {
+    if (!selectedFriend) return;
+    setFriends((prev) => prev.filter((f) => f.id !== selectedFriend.id));
+    closeRemoveModal();
+  };
+
   return (
-    //TITLE
-    <SafeAreaView style={styles.screen} edges={["top"]}>
-      <View style={styles.header}>
-        <View style={styles.headerBlock} />
-        <Text style={styles.headerText}>Add A Friend!</Text>
-        {/*FRIEND SEARCH BAR*/}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search friends..."
-            value = {searchQuery}
-            onChangeText = {handleSearch}
-            placeholderTextColor = "#4c4b4b"
-            />
+    <ImageBackground
+      source={require("../../assets/images/bg.jpg")}
+      style={{ flex: 1 }}
+      resizeMode="cover"
+    >
+      <SafeAreaView style={styles.screen} edges={["top"]}>
+        <View style={styles.topBar}>
+          <View style={styles.avatarDot} />
+          <View style={styles.streakPill}>
+            <Text style={styles.streakText}>🔥 Streak : 12</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.body}> 
-      {/*FRIENDS LIST */}
-         <FlatList
-          data={friendData}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.friendItem}>
-              <View style={styles.avatarPlaceholder} />
-              <View>
-                <Text style={styles.friendName}>{item.name}</Text>
+
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.header}>
+            <View style={styles.headerBlock} />
+            <Text style={styles.headerText}>Add A Friend!</Text>
+
+            <View style={styles.searchRow}>
+              <View style={styles.searchContainer}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search or type a username..."
+                  value={searchQuery}
+                  onChangeText={handleSearch}
+                  placeholderTextColor="#4c4b4b"
+                  returnKeyType="done"
+                  onSubmitEditing={handleAddFriend}
+                />
               </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.addFriendButton,
+                  pressed && { transform: [{ translateY: 2 }] },
+                  !searchQuery.trim() && { opacity: 0.6 },
+                ]}
+                onPress={handleAddFriend}
+                disabled={!searchQuery.trim()}
+              >
+                <Text style={styles.addFriendButtonText}>Add</Text>
+              </Pressable>
             </View>
-          )}
-          contentContainerStyle={styles.listContainer}
-        />
-      </View>
-    </SafeAreaView>
+          </View>
+
+          <View style={styles.body}>
+            <FlatList
+              ref={listRef}
+              data={filteredFriends}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => openRemoveModal(item)}
+                  style={({ pressed }) => [
+                    styles.friendItem,
+                    pressed && { transform: [{ translateY: 1 }], opacity: 0.95 },
+                  ]}
+                >
+                  <View style={styles.avatarPlaceholder} />
+                  <Text style={styles.friendName}>{item.name}</Text>
+                </Pressable>
+              )}
+              contentContainerStyle={styles.listContainer}
+              keyboardShouldPersistTaps="handled"
+              removeClippedSubviews={false}
+              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+            />
+          </View>
+        </KeyboardAvoidingView>
+
+        {/* ✅ Remove Friend Modal */}
+        <Modal
+          visible={isRemoveModalOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={closeRemoveModal}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={closeRemoveModal}>
+            <Pressable style={styles.modalCard} onPress={() => {}}>
+              <Text style={styles.modalTitle}>Friend Options</Text>
+
+              <Text style={styles.modalBodyText}>
+                {selectedFriend ? `Remove ${selectedFriend.name}?` : ""}
+              </Text>
+
+              <View style={styles.modalRow}>
+                <Pressable style={styles.modalBtnGhost} onPress={closeRemoveModal}>
+                  <Text style={styles.modalBtnGhostText}>Cancel</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.modalBtnDanger}
+                  onPress={removeSelectedFriend}
+                >
+                  <Text style={styles.modalBtnDangerText}>Remove Friend</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#4f8f52",
+  screen: { flex: 1, backgroundColor: "transparent" },
+
+  topBar: {
+    height: 64,
+    backgroundColor: "#3E5870",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
   },
+  avatarDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "white",
+  },
+  streakPill: {
+    borderWidth: 1,
+    borderColor: "#C9C2B6",
+    backgroundColor: "#FBF7EF",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  streakText: { fontSize: 14, fontWeight: "700", color: "#1B1B1B" },
+
   header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     zIndex: 1,
   },
   headerBlock: {
-    position: 'absolute',
+    position: "absolute",
     top: 32,
     left: 30,
     right: 35,
     height: 140,
     borderRadius: 30,
-    backgroundColor: '#bdbdbd',
-    borderBlockColor: '#0a0909',
+    backgroundColor: "#edf3fa",
+    borderBlockColor: "#b9b9b9",
+    borderLeftColor: "#b9b9b9",
+    borderRightColor: "#b9b9b9",
     borderWidth: 1.5,
     zIndex: -1,
   },
   headerText: {
-    color: "white",
+    color: "#0a0909",
     fontSize: 22,
     fontWeight: "800",
     top: 40,
     left: 35,
   },
-  body: {
-    flex: 1,
+
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    top: 50,
+    left: 30,
+    right: 60,
+    width: 300,
   },
   searchContainer: {
-    backgroundColor: '#fff',
+    flex: 1,
+    backgroundColor: "#fff",
+    borderBlockColor: "#b9b9b9",
+    borderLeftColor: "#b9b9b9",
+    borderRightColor: "#b9b9b9",
     borderRadius: 50,
-    marginVertical: 10,
+    borderWidth: 1.5,
     paddingHorizontal: 20,
-    top: 50,
-    left:30,
-    right:60,
     height: 45,
-    width: 300,
-    justifyContent: 'center',
+    justifyContent: "center",
+    marginRight: 10,
   },
-  searchInput: {
-    fontSize: 16,
-    color: '#000',
+  searchInput: { fontSize: 16, color: "#000" },
+
+  addFriendButton: {
+    height: 45,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    backgroundColor: "#3E5870",
+    borderWidth: 1.2,
+    borderColor: "#2E4256",
+    alignItems: "center",
+    justifyContent: "center",
   },
+  addFriendButtonText: { color: "white", fontSize: 16, fontWeight: "900" },
+
+  body: {
+    flex: 1,
+    marginTop: 90, // ✅ spacing below Add Friend box
+  },
+
   friendItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
-    top: 70,
+    backgroundColor: "#ecf5ff",
+    borderBlockColor: "#b9b9b9",
+    borderLeftColor: "#b9b9b9",
+    borderRightColor: "#b9b9b9",
+    borderWidth: 1.2,
     left: 25,
     right: 25,
     padding: 13,
@@ -130,14 +301,63 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     backgroundColor: "#ccc",
     marginRight: 15,
-    padding:5,
   },
-  friendName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-  },
+  friendName: { fontSize: 18, fontWeight: "600", color: "#333" },
+
   listContainer: {
-    padding: 20,
+    paddingTop: 5,
+    paddingHorizontal: 15,
+    paddingBottom: 30,
   },
+
+  // Modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    padding: 18,
+    justifyContent: "center",
+  },
+  modalCard: {
+    backgroundColor: "#FBF7EF",
+    borderWidth: 1,
+    borderColor: "#C9C2B6",
+    borderRadius: 18,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#1B1B1B",
+    marginBottom: 10,
+  },
+  modalBodyText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1B1B1B",
+    marginBottom: 14,
+  },
+  modalRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  modalBtnGhost: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#B7C1CC",
+    backgroundColor: "white",
+  },
+  modalBtnGhostText: { fontWeight: "900", color: "#1B1B1B" },
+
+  modalBtnDanger: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "#B42318",
+    borderWidth: 1,
+    borderColor: "#7A271A",
+  },
+  modalBtnDangerText: { fontWeight: "900", color: "white" },
 });

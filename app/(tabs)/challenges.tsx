@@ -1,13 +1,95 @@
-import React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+type Task = {
+  id: string;
+  title: string;
+  category: string;
+  completed: boolean;
+  createdAt: number;
+};
+
 export default function ChallengesScreen() {
-  const tasks = [
-    { title: "Take a 15 minute walk", category: "Physical" },
-    { title: "Take a 15 minute walk", category: "Physical" },
-    { title: "Take a 15 minute walk", category: "Physical" },
-  ];
+  // ✅ In the future, load these from your backend / storage
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: "t1",
+      title: "Take a 15 minute walk",
+      category: "Physical",
+      completed: false,
+      createdAt: Date.now(),
+    },
+    {
+      id: "t2",
+      title: "Drink a full bottle of water",
+      category: "Physical",
+      completed: false,
+      createdAt: Date.now(),
+    },
+    {
+      id: "t3",
+      title: "Text one friend",
+      category: "Social",
+      completed: false,
+      createdAt: Date.now(),
+    },
+  ]);
+
+  // modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+
+  // progress (optional but useful for your bar)
+  const { completedCount, totalCount, progressPct } = useMemo(() => {
+    const total = tasks.length;
+    const completed = tasks.filter((t) => t.completed).length;
+    const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
+    return { completedCount: completed, totalCount: total, progressPct: pct };
+  }, [tasks]);
+
+  function openAddTask() {
+    setNewTitle("");
+    setNewCategory("");
+    setIsModalOpen(true);
+  }
+
+  function closeAddTask() {
+    setIsModalOpen(false);
+  }
+
+  function toggleTask(id: string) {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    );
+  }
+
+  function addTask() {
+    const title = newTitle.trim();
+    const category = newCategory.trim() || "General";
+
+    if (!title) return;
+
+    const task: Task = {
+      id: String(Date.now()), // ✅ replace with uuid later if you want
+      title,
+      category,
+      completed: false,
+      createdAt: Date.now(),
+    };
+
+    setTasks((prev) => [task, ...prev]); // adds to top
+    closeAddTask();
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
@@ -28,19 +110,38 @@ export default function ChallengesScreen() {
           <Text style={styles.todayTitle}>Today’s tasks:</Text>
 
           <View style={styles.progressTrack}>
-            <View style={styles.progressFill} />
+            <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
           </View>
+
+          <Text style={styles.progressMeta}>
+            {completedCount}/{totalCount} completed
+          </Text>
         </View>
 
-        {/* Date */}
+        {/* Date (you can replace with real date later) */}
         <Text style={styles.dateText}>Friday, Feb 6th</Text>
 
         {/* Task cards */}
-        {tasks.map((t, idx) => (
-          <View key={idx} style={styles.taskCard}>
-            <View style={styles.taskCheckCircle} />
+        {tasks.map((t) => (
+          <View key={t.id} style={styles.taskCard}>
+            <Pressable
+              onPress={() => toggleTask(t.id)}
+              style={[
+                styles.taskCheckCircle,
+                t.completed && styles.taskCheckCircleDone,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Mark task ${t.title} as ${
+                t.completed ? "not completed" : "completed"
+              }`}
+            >
+              {t.completed ? <Text style={styles.checkMark}>✓</Text> : null}
+            </Pressable>
+
             <View style={styles.taskTextWrap}>
-              <Text style={styles.taskTitle}>{t.title}</Text>
+              <Text style={[styles.taskTitle, t.completed && styles.taskTitleDone]}>
+                {t.title}
+              </Text>
               <Text style={styles.taskSubtitle}>Category: {t.category}</Text>
             </View>
           </View>
@@ -48,21 +149,69 @@ export default function ChallengesScreen() {
 
         {/* Add Task button */}
         <View style={styles.addButtonWrap}>
-          {/* shadow/base */}
           <View style={styles.addButtonShadow} />
 
-          {/* top face */}
           <Pressable
             style={({ pressed }) => [
               styles.addButton,
               pressed && { transform: [{ translateY: 6 }] },
             ]}
-            onPress={() => {}}
+            onPress={openAddTask}
           >
             <Text style={styles.addButtonText}>Add Task</Text>
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* ✅ Add Task Modal (popup) */}
+      <Modal
+        visible={isModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeAddTask}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={closeAddTask}>
+          {/* stop click-through */}
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>New Task</Text>
+
+            <Text style={styles.modalLabel}>Title</Text>
+            <TextInput
+              value={newTitle}
+              onChangeText={setNewTitle}
+              placeholder="e.g., 10 minute stretch"
+              placeholderTextColor="#6B7280"
+              style={styles.modalInput}
+            />
+
+            <Text style={styles.modalLabel}>Category</Text>
+            <TextInput
+              value={newCategory}
+              onChangeText={setNewCategory}
+              placeholder="e.g., Physical"
+              placeholderTextColor="#6B7280"
+              style={styles.modalInput}
+            />
+
+            <View style={styles.modalRow}>
+              <Pressable style={styles.modalBtnGhost} onPress={closeAddTask}>
+                <Text style={styles.modalBtnGhostText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.modalBtnPrimary,
+                  !newTitle.trim() && { opacity: 0.5 },
+                ]}
+                onPress={addTask}
+                disabled={!newTitle.trim()}
+              >
+                <Text style={styles.modalBtnPrimaryText}>Add</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -133,12 +282,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7FAFD",
     overflow: "hidden",
   },
-  // ~30% filled like your screenshot
   progressFill: {
-    width: "30%",
     height: "100%",
     backgroundColor: "#3E5870",
     borderRadius: 10,
+  },
+  progressMeta: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1B1B1B",
   },
 
   dateText: {
@@ -168,7 +321,20 @@ const styles = StyleSheet.create({
     borderColor: "#9AA6B2",
     backgroundColor: "#F6F2E6",
     marginRight: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
+  taskCheckCircleDone: {
+    backgroundColor: "#3E5870",
+    borderColor: "#2E4256",
+  },
+  checkMark: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: -1,
+  },
+
   taskTextWrap: {
     flex: 1,
   },
@@ -177,6 +343,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1B1B1B",
     marginBottom: 4,
+  },
+  taskTitleDone: {
+    textDecorationLine: "line-through",
+    opacity: 0.6,
   },
   taskSubtitle: {
     fontSize: 13,
@@ -189,18 +359,15 @@ const styles = StyleSheet.create({
     position: "relative",
     marginTop: 10,
   },
-
   addButtonShadow: {
     position: "absolute",
-    top: 6, // depth
+    top: 6,
     left: 0,
     right: 0,
     height: "100%",
-    backgroundColor: "#2E4256", // darker base
+    backgroundColor: "#2E4256",
     borderRadius: 16,
   },
-
-  // your existing addButton stays mostly same — just remove marginTop from it
   addButton: {
     backgroundColor: "#3E5870",
     borderRadius: 16,
@@ -216,29 +383,71 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  // Bottom pill
-  bottomPill: {
-    marginTop: 18,
-    alignSelf: "center",
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#EAF0F6",
+  // Modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    padding: 18,
+    justifyContent: "center",
+  },
+  modalCard: {
+    backgroundColor: "#FBF7EF",
     borderWidth: 1,
-    borderColor: "#B7C1CC",
-    borderRadius: 999,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    gap: 10,
+    borderColor: "#C9C2B6",
+    borderRadius: 18,
+    padding: 16,
   },
-  bottomPillText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#1B1B1B",
-  },
-  bottomPillArrow: {
+  modalTitle: {
     fontSize: 18,
     fontWeight: "900",
     color: "#1B1B1B",
-    marginTop: -1,
+    marginBottom: 12,
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1B1B1B",
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  modalInput: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#B7C1CC",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#111827",
+  },
+  modalRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 14,
+  },
+  modalBtnGhost: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#B7C1CC",
+    backgroundColor: "white",
+  },
+  modalBtnGhostText: {
+    fontWeight: "900",
+    color: "#1B1B1B",
+  },
+  modalBtnPrimary: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "#3E5870",
+    borderWidth: 1,
+    borderColor: "#2E4256",
+  },
+  modalBtnPrimaryText: {
+    fontWeight: "900",
+    color: "white",
   },
 });
