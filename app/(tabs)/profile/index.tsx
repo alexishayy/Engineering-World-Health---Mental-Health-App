@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 export default function ProfileScreen() {
   return (
     <View style={styles.container}>
-      {/* Top Profile Card */}
+      {/* Profile Card */}
       <View style={styles.card}>
         <View style={styles.profileRow}>
           <Ionicons name="person-circle-outline" size={90} color="black" />
@@ -15,7 +15,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Stats */}
+        {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={styles.statNumber}>12</Text>
@@ -34,17 +34,30 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Tabs */}
+      {/* Tab Bar */}
       <View style={styles.tabContainer}>
-        <Pressable onPress={() => router.push("/profile/account")}>
-          <Text style={styles.activeTab}>Account</Text>
+        <Pressable
+          style={styles.tabButton}
+          onPress={() => router.push("/profile/account")}
+        >
+          <Text style={styles.tab}>Account</Text>
         </Pressable>
 
-        <Pressable onPress={() => router.push("/profile/preferences")}>
+        <View style={styles.divider} />
+
+        <Pressable
+          style={styles.tabButton}
+          onPress={() => router.push("/profile/preferences")}
+        >
           <Text style={styles.tab}>Preferences</Text>
         </Pressable>
 
-        <Pressable onPress={() => router.push("/profile/stats")}>
+        <View style={styles.divider} />
+
+        <Pressable
+          style={styles.tabButton}
+          onPress={() => router.push("/profile/stats")}
+        >
           <Text style={styles.tab}>Stats</Text>
         </Pressable>
       </View>
@@ -74,30 +87,36 @@ const styles = StyleSheet.create({
     backgroundColor: "#F6F2E6",
     padding: 20,
   },
+
   card: {
     backgroundColor: "#3E5870",
     borderRadius: 20,
     padding: 25,
   },
+
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 15,
   },
+
   name: {
     fontSize: 22,
     color: "white",
     fontWeight: "600",
   },
+
   username: {
     color: "#dcdcdc",
     marginTop: 5,
   },
+
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 25,
   },
+
   statBox: {
     backgroundColor: "#e0e0e0",
     padding: 15,
@@ -105,26 +124,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 80,
   },
+
   statNumber: {
     fontSize: 20,
     fontWeight: "600",
   },
+
   tabContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginTop: 30,
     backgroundColor: "#ddd",
-    paddingVertical: 12,
     borderRadius: 15,
+    paddingVertical: 12,
   },
-  activeTab: {
-    fontWeight: "600",
-    textDecorationLine: "underline",
-    fontSize: 16,
+
+  tabButton: {
+    flex: 1,
+    alignItems: "center",
   },
+
   tab: {
     fontSize: 16,
+    fontWeight: "400",
   },
+
+  divider: {
+    width: 1,
+    height: 20,
+    backgroundColor: "rgba(0,0,0,0.2)",
+  },
+
   button: {
     backgroundColor: "#d5d9df",
     padding: 18,
@@ -134,6 +165,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+
   buttonText: {
     fontSize: 16,
   },
