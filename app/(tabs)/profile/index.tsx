@@ -71,11 +71,11 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#e5e2cc",
+    backgroundColor: "#F6F2E6",
     padding: 20,
   },
   card: {
-    backgroundColor: "#4e677d",
+    backgroundColor: "#3E5870",
     borderRadius: 20,
     padding: 25,
   },
