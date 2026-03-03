@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 const dayBg = require( "../../assets/images/dayBg.png");
 const nightBg = require( "../../assets/images/nightBg.png");
+const sunsetBg = require("../../assets/images/sunset.jpg");
 
 
 // dummy data
@@ -30,7 +31,13 @@ type Friend = { id: string; name: string };
 const backgroundImg = () => {
   const hour = new Date().getHours();
 
-  return hour >= 6 && hour < 18 ? dayBg : nightBg;
+  if (hour >= 6 && hour < 17) {
+    return dayBg;      
+  } else if (hour >= 17 && hour < 21) {
+    return sunsetBg;  
+  } else {
+    return nightBg;    
+  }
 }
 export default function FriendsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
