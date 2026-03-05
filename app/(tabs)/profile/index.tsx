@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Profile Card */}
       <View style={styles.card}>
         <View style={styles.profileRow}>
@@ -77,7 +78,7 @@ export default function ProfileScreen() {
         <Text style={styles.buttonText}>Password and security</Text>
         <Ionicons name="chevron-forward" size={20} />
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 
