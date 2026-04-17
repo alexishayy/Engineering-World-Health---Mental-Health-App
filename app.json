@@ -9,8 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.MentalHealthApp"
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -20,8 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.MentalHealthApp"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -40,8 +38,7 @@
             "backgroundColor": "#000000"
           }
         }
-      ],
-      "expo-web-browser"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

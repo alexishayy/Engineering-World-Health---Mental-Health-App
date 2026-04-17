@@ -1,15 +1,11 @@
-import { useGoogleSignIn } from "@/src/auth/googleSignIn";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
-  const { promptAsync } = useGoogleSignIn();
-
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Home Screen</Text>
-        <Button title="Sign in with Google" onPress={() => promptAsync()} />
       </View>
       <View style={styles.body} />
     </SafeAreaView>
