@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from "react";
 import {
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -97,7 +98,11 @@ export default function ChallengesScreen() {
       <View style={styles.topBar}>
         <View style={styles.avatarDot} />
         <View style={styles.streakPill}>
-          <Text style={styles.streakText}>🔥 Streak : 12</Text>
+          <Image
+            source={require('../../assets/images/streak.png')}
+            style={{width: 25, height: 25}}
+            />
+          <Text style={styles.streakText}> Streak : 12</Text>
         </View>
       </View>
 
@@ -220,13 +225,13 @@ const styles = StyleSheet.create({
   // Whole screen background (cream)
   screen: {
     flex: 1,
-    backgroundColor: "#F6F2E6",
+    backgroundColor: "#e7eff0",
   },
 
   // Dark top bar
   topBar: {
     height: 64,
-    backgroundColor: "#3E5870",
+    backgroundColor: "#a3cef1",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -245,10 +250,12 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   streakPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: "#C9C2B6",
     backgroundColor: "#FBF7EF",
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 999,
   },
@@ -260,9 +267,9 @@ const styles = StyleSheet.create({
 
   // "Today's tasks" card
   todayCard: {
-    backgroundColor: "#EAF0F6",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#B7C1CC",
+    borderColor: "#b5e48c",
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 18,
@@ -270,42 +277,42 @@ const styles = StyleSheet.create({
   },
   todayTitle: {
     fontSize: 22,
-    fontWeight: "500",
-    color: "#1B1B1B",
+    fontWeight: "600",
+    color: "#588157",
     marginBottom: 12,
   },
   progressTrack: {
     height: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#9AA6B2",
+    borderColor: "#b5e48c",
     backgroundColor: "#F7FAFD",
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#3E5870",
+    backgroundColor: "#b5e48c",
     borderRadius: 10,
   },
   progressMeta: {
     marginTop: 10,
     fontSize: 12,
     fontWeight: "700",
-    color: "#1B1B1B",
+    color: "#9a9696",
   },
 
   dateText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1B1B1B",
+    color: "#9a9696",
     marginBottom: 14,
   },
 
   // Task card
   taskCard: {
-    backgroundColor: "#EAF0F6",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#B7C1CC",
+    borderColor: "#b5e48c",
     borderRadius: 22,
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -318,15 +325,15 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 1,
-    borderColor: "#9AA6B2",
-    backgroundColor: "#F6F2E6",
+    borderColor: "#b0c4b1",
+    backgroundColor: "#f8f5f1",
     marginRight: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   taskCheckCircleDone: {
-    backgroundColor: "#3E5870",
-    borderColor: "#2E4256",
+    backgroundColor: "#b5e48c",
+    borderColor: "#92b772",
   },
   checkMark: {
     color: "white",
@@ -341,7 +348,7 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1B1B1B",
+    color: "#588157",
     marginBottom: 4,
   },
   taskTitleDone: {
@@ -351,7 +358,7 @@ const styles = StyleSheet.create({
   taskSubtitle: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#4B5563",
+    color: "#9a9696",
   },
 
   // Add button
@@ -365,17 +372,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: "100%",
-    backgroundColor: "#2E4256",
+    backgroundColor: "#93b9d9",
     borderRadius: 16,
   },
   addButton: {
-    backgroundColor: "#3E5870",
+    backgroundColor: "#a3cef1",
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#2E4256",
+    borderColor: "#95bdde",
   },
   addButtonText: {
     color: "white",
