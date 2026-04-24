@@ -1,4 +1,4 @@
-import { logIn, signUp } from "@/src/auth/emailAuth";
+import { logIn, logOut, signUp } from "@/src/auth/emailAuth";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Button, TextInput, View } from "react-native";
@@ -25,6 +25,15 @@ export default function LoginScreen() {
     }
   }
 
+  async function handleLogout() {
+    try {
+      await logOut();
+      router.replace("/");
+    } catch (err: any) {
+      Alert.alert("Logout failed", err.message);
+    }
+  }
+
   return (
     <View style={{ padding: 20 }}>
       <TextInput
@@ -42,6 +51,7 @@ export default function LoginScreen() {
 
       <Button title="Log In" onPress={handleLogin} />
       <Button title="Sign Up" onPress={handleSignup} />
+      <Button title="Log Out" onPress={handleLogout} />
     </View>
   );
 }
