@@ -221,11 +221,12 @@ export default function ChallengesScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   // Whole screen background (cream)
   screen: {
     flex: 1,
-    backgroundColor: "#e7eff0",
+    backgroundColor: "#494a4a",
   },
 
   // Dark top bar
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
   todayCard: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#b5e48c",
+    borderColor: "#000000",
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 18,
@@ -277,21 +278,21 @@ const styles = StyleSheet.create({
   },
   todayTitle: {
     fontSize: 22,
-    fontWeight: "600",
-    color: "#588157",
+    fontWeight: "800",
+    color: "#000000",
     marginBottom: 12,
   },
   progressTrack: {
     height: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#b5e48c",
+    borderColor: "#000000",
     backgroundColor: "#F7FAFD",
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#b5e48c",
+    backgroundColor: "#000000",
     borderRadius: 10,
   },
   progressMeta: {
@@ -312,7 +313,7 @@ const styles = StyleSheet.create({
   taskCard: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#b5e48c",
+    borderColor: "##df2d2d",
     borderRadius: 22,
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -324,16 +325,16 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    borderWidth: 1,
-    borderColor: "#b0c4b1",
+    borderWidth: 2,
+    borderColor: "#000000",
     backgroundColor: "#f8f5f1",
     marginRight: 14,
     alignItems: "center",
     justifyContent: "center",
   },
   taskCheckCircleDone: {
-    backgroundColor: "#b5e48c",
-    borderColor: "#92b772",
+    backgroundColor: "#000000",
+    borderColor: "#000000",
   },
   checkMark: {
     color: "white",
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#588157",
+    color: "#000000",
     marginBottom: 4,
   },
   taskTitleDone: {
