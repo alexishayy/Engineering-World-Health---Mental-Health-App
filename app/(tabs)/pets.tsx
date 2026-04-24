@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 
 type Slot = {
   id: string;
@@ -371,7 +372,7 @@ export default function PetsScreen() {
     <SafeAreaView style={styles.screen} edges={["top"]}>
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <View style={styles.avatarOuter} />
+        <ProfileAvatarButton size={32} />
         <View style={styles.streakPill}>
           <Text style={styles.streakText}>🔥 Streak : 12</Text>
         </View>
