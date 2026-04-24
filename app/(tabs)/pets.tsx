@@ -4,8 +4,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Easing,
+  Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -14,28 +16,51 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 
-type Slot = {
+type PetState = {
   id: string;
-  locked: boolean;
+  image: any;
+  emoji: string;
+  collected: number;
+  unlocked: boolean;
 };
 
-type Gift =
-  | { type: "PAWS"; amount: number }
-  | { type: "STREAK_FREEZE"; amount: 1 }
-  | { type: "XP_BOOST"; hours: number };
+type Reward = {
+  gains: { petId: string; emoji: string }[];
+  unlockedPetIds: string[];
+};
 
 const STORAGE_KEY_LAST_CLAIM = "pets_free_gift_last_claim_timestamp";
-const COOLDOWN_MS = 30000; // ✅ demo mode: 30 seconds
+const COOLDOWN_MS = 30000;
+const REQUIRED_EMOJIS = 5;
+const TOTAL_PETS = 3;
+const COMING_SOON_SLOTS = 6;
+
+const INITIAL_PETS: PetState[] = [
+  {
+    id: "p1",
+    image: require("../../assets/pets/fpet1.png"),
+    emoji: "🐾",
+    collected: REQUIRED_EMOJIS,
+    unlocked: true,
+  },
+  {
+    id: "p2",
+    image: require("../../assets/pets/fpet2.png"),
+    emoji: "🐟",
+    collected: 0,
+    unlocked: false,
+  },
+  {
+    id: "p3",
+    image: require("../../assets/pets/fpet3.png"),
+    emoji: "🦴",
+    collected: 0,
+    unlocked: false,
+  },
+];
 
 function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function rollGift(): Gift {
-  const roll = randInt(1, 3);
-  if (roll === 1) return { type: "PAWS", amount: randInt(1, 10) };
-  if (roll === 2) return { type: "STREAK_FREEZE", amount: 1 };
-  return { type: "XP_BOOST", hours: randInt(1, 24) };
 }
 
 function formatSeconds(s: number) {
@@ -44,13 +69,14 @@ function formatSeconds(s: number) {
 }
 
 export default function PetsScreen() {
-  const TOTAL_SLOTS = 9;
-  const [unlockedCount] = useState(4);
-  const [selectedId, setSelectedId] = useState("1");
+  const [pets, setPets] = useState<PetState[]>(INITIAL_PETS);
 
-  // Gift logic/state
+  const unlockedCount = pets.filter((p) => p.unlocked).length;
+  const progressPct = Math.round((unlockedCount / TOTAL_PETS) * 100);
+
+  // Gift state
   const [giftOpen, setGiftOpen] = useState(false);
-  const [gift, setGift] = useState<Gift | null>(null);
+  const [pendingReward, setPendingReward] = useState<Reward | null>(null);
 
   const [loadingClaimState, setLoadingClaimState] = useState(true);
   const [claimed, setClaimed] = useState(false);
@@ -59,16 +85,17 @@ export default function PetsScreen() {
   // Animations
   const modalScale = useRef(new Animated.Value(0.95)).current;
   const modalOpacity = useRef(new Animated.Value(0)).current;
-
   const shakeX = useRef(new Animated.Value(0)).current;
-
   const burstScale = useRef(new Animated.Value(0)).current;
   const burstOpacity = useRef(new Animated.Value(0)).current;
 
-  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const cooldownTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  );
+  const cooldownTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
-  // Confetti particles
   const particles = useMemo(
     () =>
       Array.from({ length: 12 }, () => ({
@@ -78,13 +105,11 @@ export default function PetsScreen() {
         o: new Animated.Value(0),
         s: new Animated.Value(0.5),
       })),
-    [],
+    []
   );
 
-  // ✅ 30s cooldown check on mount (and auto re-enable with countdown)
   useEffect(() => {
     const startCooldown = (remainingMs: number) => {
-      // clear any old timers
       if (cooldownIntervalRef.current)
         clearInterval(cooldownIntervalRef.current);
       if (cooldownTimeoutRef.current) clearTimeout(cooldownTimeoutRef.current);
@@ -104,7 +129,6 @@ export default function PetsScreen() {
           clearInterval(cooldownIntervalRef.current);
         cooldownIntervalRef.current = null;
         cooldownTimeoutRef.current = null;
-
         setClaimed(false);
         setSecondsLeft(0);
       }, remainingMs);
@@ -118,11 +142,9 @@ export default function PetsScreen() {
           setSecondsLeft(0);
           return;
         }
-
         const lastTime = Number(last);
         const now = Date.now();
         const elapsed = now - lastTime;
-
         if (elapsed >= COOLDOWN_MS) {
           setClaimed(false);
           setSecondsLeft(0);
@@ -143,29 +165,19 @@ export default function PetsScreen() {
     };
   }, []);
 
-  // slots
-  const slots: Slot[] = useMemo(() => {
-    return Array.from({ length: TOTAL_SLOTS }, (_, i) => {
-      const id = String(i + 1);
-      return { id, locked: i >= unlockedCount };
-    });
-  }, [TOTAL_SLOTS, unlockedCount]);
-
-  // --- grid sizing ---
+  // grid sizing
   const { width } = useWindowDimensions();
   const COLUMNS = 3;
   const GAP = 12;
   const GRID_CARD_PADDING = 14;
   const SCREEN_PADDING = 18;
-
   const gridInnerWidth =
-    width - SCREEN_PADDING * 2 - GRID_CARD_PADDING * 2 - 1.5 * 2;
+    width - SCREEN_PADDING * 2 - GRID_CARD_PADDING * 2 - 2;
   const tileSize = (gridInnerWidth - GAP * (COLUMNS - 1)) / COLUMNS;
 
   function playModalOpenAnim() {
     modalScale.setValue(0.95);
     modalOpacity.setValue(0);
-
     Animated.parallel([
       Animated.timing(modalOpacity, {
         toValue: 1,
@@ -215,7 +227,6 @@ export default function PetsScreen() {
   function playBurst() {
     burstScale.setValue(0.6);
     burstOpacity.setValue(0);
-
     Animated.parallel([
       Animated.timing(burstOpacity, {
         toValue: 1,
@@ -289,7 +300,7 @@ export default function PetsScreen() {
     }).start();
   }
 
-  async function openGift() {
+  function openGift() {
     if (loadingClaimState) return;
 
     if (claimed) {
@@ -297,33 +308,61 @@ export default function PetsScreen() {
       return;
     }
 
-    const g = rollGift();
-    setGift(g);
+    // Roll for each locked pet: 50/50 chance to gain one emoji.
+    const gains: { petId: string; emoji: string }[] = [];
+    const unlockedPetIds: string[] = [];
+
+    for (const p of pets) {
+      if (p.unlocked) continue;
+      if (Math.random() < 0.5) {
+        gains.push({ petId: p.id, emoji: p.emoji });
+        if (p.collected + 1 >= REQUIRED_EMOJIS) {
+          unlockedPetIds.push(p.id);
+        }
+      }
+    }
+
+    setPendingReward({ gains, unlockedPetIds });
     setGiftOpen(true);
     requestAnimationFrame(playModalOpenAnim);
   }
 
   async function claimGift() {
-    if (!gift) return;
+    if (!pendingReward) return;
 
-    // ✅ demo cooldown starts now
+    // Apply reward to pet state
+    setPets((prev) =>
+      prev.map((p) => {
+        const gainedCount = pendingReward.gains.filter(
+          (g) => g.petId === p.id
+        ).length;
+        if (gainedCount === 0) return p;
+        const nextCollected = Math.min(
+          REQUIRED_EMOJIS,
+          p.collected + gainedCount
+        );
+        return {
+          ...p,
+          collected: nextCollected,
+          unlocked: p.unlocked || nextCollected >= REQUIRED_EMOJIS,
+        };
+      })
+    );
+
+    // Start cooldown
     const now = Date.now();
     await AsyncStorage.setItem(STORAGE_KEY_LAST_CLAIM, String(now));
 
-    // start cooldown timers + countdown
-    const remainingMs = COOLDOWN_MS;
-
-    // clear old timers
     if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
     if (cooldownTimeoutRef.current) clearTimeout(cooldownTimeoutRef.current);
 
     setClaimed(true);
-    setSecondsLeft(Math.ceil(remainingMs / 1000));
+    setSecondsLeft(Math.ceil(COOLDOWN_MS / 1000));
 
     const startedAt = Date.now();
     cooldownIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - startedAt;
-      const left = Math.max(0, remainingMs - elapsed);
+      const left = Math.max(0, COOLDOWN_MS - elapsed);
       setSecondsLeft(Math.ceil(left / 1000));
     }, 200);
 
@@ -332,116 +371,164 @@ export default function PetsScreen() {
         clearInterval(cooldownIntervalRef.current);
       cooldownIntervalRef.current = null;
       cooldownTimeoutRef.current = null;
-
       setClaimed(false);
       setSecondsLeft(0);
-    }, remainingMs);
+    }, COOLDOWN_MS);
 
-    // 🎉 animation + close
     playBurst();
     setTimeout(() => {
       setGiftOpen(false);
-      setGift(null);
+      setPendingReward(null);
     }, 700);
   }
 
-  const giftTitle =
-    gift?.type === "PAWS"
-      ? "Paws Reward!"
-      : gift?.type === "STREAK_FREEZE"
-        ? "Streak Freeze!"
-        : "XP Booster!";
-
-  const giftBody =
-    gift?.type === "PAWS"
-      ? `You got +${gift.amount} paws 🐾`
-      : gift?.type === "STREAK_FREEZE"
-        ? `You got 1 streak freeze ❄️`
-        : gift?.type === "XP_BOOST"
-          ? `You got an XP booster for ${gift.hours} hour${gift.hours === 1 ? "" : "s"} ⚡`
-          : "";
-
-  const giftIconName =
-    gift?.type === "PAWS"
-      ? "paw"
-      : gift?.type === "STREAK_FREEZE"
-        ? "snowflake"
-        : "lightning-bolt";
+  const anyGained = (pendingReward?.gains.length ?? 0) > 0;
+  const anyUnlocked = (pendingReward?.unlockedPetIds.length ?? 0) > 0;
+  const gainedEmojis = pendingReward?.gains.map((g) => g.emoji).join("  ") ?? "";
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      {/* Top Bar */}
+      {/* Top bar */}
       <View style={styles.topBar}>
         <ProfileAvatarButton size={32} />
         <View style={styles.streakPill}>
-          <Text style={styles.streakText}>🔥 Streak : 12</Text>
+          <Image
+            source={require("../../assets/images/streak.png")}
+            style={{ width: 25, height: 25 }}
+          />
+          <Text style={styles.streakText}> Streak : 12</Text>
         </View>
       </View>
 
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.titleRow}>
-          <Text style={styles.sectionTitle}>Pets Unlocked:</Text>
-          <Text style={styles.sectionCount}>
-            {unlockedCount}/{TOTAL_SLOTS}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Summary card */}
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Pets Unlocked:</Text>
+
+          <View style={styles.progressTrack}>
+            <View
+              style={[styles.progressFill, { width: `${progressPct}%` }]}
+            />
+          </View>
+
+          <Text style={styles.progressMeta}>
+            {unlockedCount}/{TOTAL_PETS} collected
           </Text>
         </View>
 
         {/* Grid */}
         <View style={styles.gridCard}>
           <View style={styles.grid}>
-            {slots.map((slot, idx) => {
-              const isSelected = slot.id === selectedId;
-
+            {pets.map((p, idx) => {
+              const isRightEdge = (idx + 1) % COLUMNS === 0;
+              const pct = (p.collected / REQUIRED_EMOJIS) * 100;
               return (
-                <Pressable
-                  key={slot.id}
-                  onPress={() => {
-                    if (slot.locked) return;
-                    setSelectedId(slot.id);
-                  }}
+                <View
+                  key={p.id}
                   style={[
                     styles.slot,
                     {
                       width: tileSize,
                       height: tileSize,
-                      marginRight: (idx + 1) % COLUMNS === 0 ? 0 : GAP,
+                      marginRight: isRightEdge ? 0 : GAP,
                       marginBottom: GAP,
-                      backgroundColor: slot.locked ? SLOT_LOCKED_BG : SLOT_BG,
-                      opacity: slot.locked ? 0.65 : 1,
                     },
-                    isSelected && styles.slotSelected,
                   ]}
-                />
+                >
+                  <Image
+                    source={p.image}
+                    style={styles.slotImage}
+                    resizeMode="cover"
+                  />
+                  {!p.unlocked && (
+                    <>
+                      <View style={styles.slotDim} />
+                      <View style={styles.lockBadge}>
+                        <MaterialCommunityIcons
+                          name="lock"
+                          size={14}
+                          color="white"
+                        />
+                      </View>
+                      <View style={styles.slotProgressOverlay}>
+                        <Text style={styles.slotEmoji}>{p.emoji}</Text>
+                        <View style={styles.slotProgressTrack}>
+                          <View
+                            style={[
+                              styles.slotProgressFill,
+                              { width: `${pct}%` },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.slotProgressCount}>
+                          {p.collected}/{REQUIRED_EMOJIS}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+              );
+            })}
+
+            {Array.from({ length: COMING_SOON_SLOTS }, (_, i) => {
+              const gridIdx = TOTAL_PETS + i;
+              const isRightEdge = (gridIdx + 1) % COLUMNS === 0;
+              return (
+                <View
+                  key={`soon-${i}`}
+                  style={[
+                    styles.slot,
+                    styles.slotComingSoon,
+                    {
+                      width: tileSize,
+                      height: tileSize,
+                      marginRight: isRightEdge ? 0 : GAP,
+                      marginBottom: GAP,
+                    },
+                  ]}
+                >
+                  <Text style={styles.comingSoonText}>Coming{"\n"}soon..</Text>
+                </View>
               );
             })}
           </View>
         </View>
 
-        {/* Free Gift Button */}
-        <View style={styles.giftWrapper}>
-          <Animated.View style={{ transform: [{ translateX: shakeX }] }}>
-            <Pressable
-              style={[styles.giftBtn, claimed && styles.giftBtnDisabled]}
-              onPress={openGift}
-            >
-              <MaterialCommunityIcons
-                name="gift"
-                size={22}
-                color="black"
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.giftBtnText}>
-                {claimed
-                  ? `Free Gift (Cooldown ${formatSeconds(secondsLeft)})`
-                  : "Free Gift"}
-              </Text>
-            </Pressable>
-          </Animated.View>
-        </View>
-      </View>
+        {/* Gift Button */}
+        <Animated.View
+          style={[
+            styles.giftButtonWrap,
+            { transform: [{ translateX: shakeX }] },
+          ]}
+        >
+          <View style={styles.giftButtonShadow} />
+          <Pressable
+            style={({ pressed }) => [
+              styles.giftButton,
+              claimed && styles.giftButtonDisabled,
+              pressed && !claimed && { transform: [{ translateY: 6 }] },
+            ]}
+            onPress={openGift}
+          >
+            <MaterialCommunityIcons
+              name="gift"
+              size={22}
+              color="white"
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.giftButtonText}>
+              {claimed
+                ? `Free Gift (Cooldown ${formatSeconds(secondsLeft)})`
+                : "Free Gift"}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      </ScrollView>
 
-      {/* Gift Popup */}
+      {/* Gift modal */}
       <Modal
         visible={giftOpen}
         transparent
@@ -457,30 +544,44 @@ export default function PetsScreen() {
           >
             <View style={styles.modalTop}>
               <MaterialCommunityIcons
-                name={giftIconName as any}
+                name="gift"
                 size={38}
-                color="black"
+                color="#000000"
                 style={{ marginBottom: 6 }}
               />
-              <Text style={styles.modalTitle}>{giftTitle}</Text>
-              <Text style={styles.modalBody}>{giftBody}</Text>
+              <Text style={styles.modalTitle}>
+                {anyGained ? "You got:" : "Better luck next time!"}
+              </Text>
+              {anyGained ? (
+                <Text style={styles.modalEmojiRow}>{gainedEmojis}</Text>
+              ) : (
+                <Text style={styles.modalBody}>
+                  No emojis this round — try again after the cooldown.
+                </Text>
+              )}
+              {anyUnlocked ? (
+                <Text style={styles.modalUnlockText}>
+                  ✨ Pet unlocked! ✨
+                </Text>
+              ) : null}
 
-              {/* Burst center */}
               <Animated.View
                 pointerEvents="none"
                 style={[
                   styles.burstWrap,
-                  { opacity: burstOpacity, transform: [{ scale: burstScale }] },
+                  {
+                    opacity: burstOpacity,
+                    transform: [{ scale: burstScale }],
+                  },
                 ]}
               >
                 <MaterialCommunityIcons
                   name="star-four-points"
                   size={42}
-                  color="black"
+                  color="#000000"
                 />
               </Animated.View>
 
-              {/* Confetti particles */}
               <View pointerEvents="none" style={styles.particlesLayer}>
                 {particles.map((p, i) => (
                   <Animated.View
@@ -517,149 +618,261 @@ export default function PetsScreen() {
   );
 }
 
-const BG = "#F6F2E7";
-const TOP = "#3F5E77";
-const CARD = "#FFFFFF";
-const BORDER = "#000000";
-
-const SLOT_BG = "#EAF1F7";
-const SLOT_LOCKED_BG = "#a0a4a9f6";
-
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: BG },
+  screen: {
+    flex: 1,
+    backgroundColor: "#494a4a",
+  },
 
   topBar: {
-    backgroundColor: TOP,
-    padding: 14,
+    height: 64,
+    backgroundColor: "#a3cef1",
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
   },
-
-  avatarOuter: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "white",
-    borderWidth: 2,
-    borderColor: BORDER,
-  },
-
   streakPill: {
-    backgroundColor: CARD,
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#C9C2B6",
+    backgroundColor: "#FBF7EF",
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 999,
   },
-
-  streakText: { fontSize: 16, fontWeight: "700" },
-
-  content: { flex: 1, padding: 18 },
-
-  titleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 14,
+  streakText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1B1B1B",
   },
 
-  sectionTitle: { fontSize: 28, fontWeight: "900" },
-  sectionCount: { fontSize: 28, fontWeight: "900" },
+  content: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 28,
+  },
 
+  // Summary card
+  summaryCard: {
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#000000",
+    borderRadius: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    marginBottom: 18,
+  },
+  summaryTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#000000",
+    marginBottom: 12,
+  },
+  progressTrack: {
+    height: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#000000",
+    backgroundColor: "#F7FAFD",
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#000000",
+    borderRadius: 10,
+  },
+  progressMeta: {
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#9a9696",
+  },
+
+  // Grid card
   gridCard: {
-    backgroundColor: CARD,
-    borderWidth: 1.5,
-    borderColor: BORDER,
-    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#000000",
+    borderRadius: 18,
     padding: 14,
+    marginBottom: 18,
   },
-
-  grid: { flexDirection: "row", flexWrap: "wrap" },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
 
   slot: {
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#000000",
+    borderRadius: 14,
+    overflow: "hidden",
+    backgroundColor: "transparent",
   },
-
-  slotSelected: {
-    borderColor: BORDER,
-    borderWidth: 2.5,
+  slotImage: {
+    width: "100%",
+    height: "100%",
   },
-
-  giftWrapper: {
-    flex: 1,
-    justifyContent: "center",
+  slotDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  lockBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "rgba(0,0,0,0.7)",
     alignItems: "center",
+    justifyContent: "center",
   },
-
-  giftBtn: {
+  slotProgressOverlay: {
+    position: "absolute",
+    left: 6,
+    right: 6,
+    bottom: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#000000",
+    backgroundColor: "rgba(255,255,255,0.95)",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: CARD,
-    borderWidth: 1.8,
-    borderColor: BORDER,
-    borderRadius: 999,
-    paddingVertical: 16,
-    paddingHorizontal: 26,
+    gap: 5,
+  },
+  slotEmoji: {
+    fontSize: 13,
+  },
+  slotProgressTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#000000",
+    backgroundColor: "#F7FAFD",
+    overflow: "hidden",
+  },
+  slotProgressFill: {
+    height: "100%",
+    backgroundColor: "#000000",
+  },
+  slotProgressCount: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#000000",
+    fontVariant: ["tabular-nums"],
   },
 
-  giftBtnDisabled: {
+  slotComingSoon: {
+    backgroundColor: "#f8f5f1",
+    borderWidth: 1,
+    borderColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  comingSoonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#9a9696",
+    textAlign: "center",
+  },
+
+  // Gift button (matches Add Task style)
+  giftButtonWrap: {
+    position: "relative",
+    marginTop: 4,
+  },
+  giftButtonShadow: {
+    position: "absolute",
+    top: 6,
+    left: 0,
+    right: 0,
+    height: "100%",
+    backgroundColor: "#93b9d9",
+    borderRadius: 16,
+  },
+  giftButton: {
+    backgroundColor: "#a3cef1",
+    borderRadius: 16,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#95bdde",
+  },
+  giftButtonDisabled: {
     opacity: 0.75,
   },
-
-  giftBtnText: {
-    fontSize: 16,
-    fontWeight: "900",
+  giftButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "800",
   },
 
-  // modal
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     padding: 18,
   },
-
   modalCard: {
-    backgroundColor: CARD,
-    borderWidth: 1.8,
-    borderColor: BORDER,
+    backgroundColor: "#FBF7EF",
+    borderWidth: 1,
+    borderColor: "#C9C2B6",
     borderRadius: 18,
     overflow: "hidden",
   },
-
   modalTop: {
     padding: 18,
     alignItems: "center",
-    minHeight: 190,
+    minHeight: 200,
     justifyContent: "center",
   },
-
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "900",
-    marginBottom: 6,
+    color: "#1B1B1B",
+    marginBottom: 8,
+    textAlign: "center",
   },
-
+  modalEmojiRow: {
+    fontSize: 34,
+    letterSpacing: 4,
+    textAlign: "center",
+    marginVertical: 4,
+  },
   modalBody: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#9a9696",
+    textAlign: "center",
+    paddingHorizontal: 12,
+  },
+  modalUnlockText: {
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#1B1B1B",
     textAlign: "center",
   },
 
   claimBtn: {
-    borderTopWidth: 1.5,
-    borderTopColor: BORDER,
+    borderTopWidth: 1,
+    borderTopColor: "#C9C2B6",
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#EEF3F8",
+    backgroundColor: "#a3cef1",
   },
-
   claimBtnText: {
     fontSize: 18,
     fontWeight: "900",
+    color: "white",
   },
 
   // burst + particles
@@ -670,7 +883,6 @@ const styles = StyleSheet.create({
     marginLeft: -21,
     marginTop: -21,
   },
-
   particlesLayer: {
     position: "absolute",
     width: 1,
@@ -678,7 +890,6 @@ const styles = StyleSheet.create({
     top: "50%",
     left: "50%",
   },
-
   particle: {
     position: "absolute",
     width: 10,
