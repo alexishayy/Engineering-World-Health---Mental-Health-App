@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Button, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
@@ -6,8 +7,9 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Home Screen</Text>
+
+        <Button title="Login / Sign Up" onPress={() => router.push("/login")} />
       </View>
-      <View style={styles.body} />
     </SafeAreaView>
   );
 }
