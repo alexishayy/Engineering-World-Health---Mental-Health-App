@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 const dayBg = require( "../../assets/images/dayBg.png");
 const nightBg = require( "../../assets/images/nightBg.png");
 const sunsetBg = require("../../assets/images/sunset.jpg");
@@ -65,7 +65,7 @@ export default function HomeScreen() {
 
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.topBar}>
-        <View style={styles.avatarDot} />
+        <ProfileAvatarButton size={32} />
           <View style={styles.streakPill}>
             <Text style={styles.streakText}>🔥 Streak : 12</Text>
           </View>
