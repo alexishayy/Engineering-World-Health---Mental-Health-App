@@ -84,9 +84,6 @@ export default function HomeScreen() {
             <Text style={styles.loginText}>{headerButtonText}</Text>
           </Pressable>
         </View>
-        <View style={styles.header}>
-          <Text style={styles.headerText}>Home Screen</Text>
-        </View>
       </SafeAreaView>
     </View>
   );
