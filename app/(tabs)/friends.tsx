@@ -1,7 +1,8 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Animated,
   FlatList,
-  ImageBackground,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,19 +13,33 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ProfileAvatarButton from "../../components/ProfileAvatarButton";
+const dayBg = require( "../../assets/images/dayBg.png");
+const nightBg = require( "../../assets/images/nightBg.png");
+const sunsetBg = require("../../assets/images/sunset.jpg");
+
 
 // dummy data
 const friendData = [
   { id: "1", name: "Username1" },
   { id: "2", name: "Username2" },
   { id: "3", name: "Username3" },
-  { id: "4", name: "Username4" },
-  { id: "5", name: "Username5" },
-  { id: "6", name: "Username6" },
+
 ];
 
 type Friend = { id: string; name: string };
 
+const backgroundImg = () => {
+  const hour = new Date().getHours();
+
+  if (hour >= 6 && hour < 17) {
+    return dayBg;      
+  } else if (hour >= 17 && hour < 21) {
+    return sunsetBg;  
+  } else {
+    return nightBg;    
+  }
+}
 export default function FriendsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState<Friend[]>(friendData);
@@ -72,15 +87,48 @@ export default function FriendsScreen() {
     closeRemoveModal();
   };
 
+  const [currentBg, setCurrentBg] = useState(backgroundImg());
+  const [nextBg, setNextBg] = useState(backgroundImg());
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const fadeToNewBackground = (newImage: any) => {
+    if (newImage === currentBg) return;
+
+    setNextBg(newImage);
+
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start(() => {
+      setCurrentBg(newImage);
+      fadeAnim.setValue(0);
+    });
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const newImage = backgroundImg();
+      fadeToNewBackground(newImage);
+    }, 60000); // check every minute
+
+    return () => clearInterval(interval);
+  }, [currentBg]);
+
   return (
-    <ImageBackground
-      source={require("../../assets/images/bg.jpg")}
-      style={{ flex: 1 }}
-      resizeMode="cover"
-    >
+      <View style={{ flex: 1 }}>
+        {/* Current background */}
+        <Image source={currentBg} style={styles.backgroundImg} />
+
+        {/* Next background (animated fade) */}
+        <Animated.Image
+          source={nextBg}
+          style={[styles.backgroundImg, { opacity: fadeAnim }]}
+  />
+
       <SafeAreaView style={styles.screen} edges={["top"]}>
         <View style={styles.topBar}>
-          <View style={styles.avatarDot} />
+          <ProfileAvatarButton size={32} />
           <View style={styles.streakPill}>
             <Text style={styles.streakText}>🔥 Streak : 12</Text>
           </View>
@@ -177,16 +225,23 @@ export default function FriendsScreen() {
           </Pressable>
         </Modal>
       </SafeAreaView>
-    </ImageBackground>
+      </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "transparent" },
-
+  backgroundImg: {
+  position: "absolute",
+  width: "100%",
+  height: "100%",
+  top: 0,
+  left: 0,
+  resizeMode: "cover",
+},
   topBar: {
     height: 64,
-    backgroundColor: "#3E5870",
+    backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -251,6 +306,7 @@ const styles = StyleSheet.create({
     borderRightColor: "#b9b9b9",
     borderRadius: 50,
     borderWidth: 1.5,
+    top: 10,
     paddingHorizontal: 20,
     height: 45,
     justifyContent: "center",
@@ -260,6 +316,7 @@ const styles = StyleSheet.create({
 
   addFriendButton: {
     height: 45,
+    top: 10,
     paddingHorizontal: 16,
     borderRadius: 16,
     backgroundColor: "#3E5870",
