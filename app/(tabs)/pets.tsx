@@ -621,7 +621,7 @@ export default function PetsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#494a4a",
+    backgroundColor: "#e7eff0",
   },
 
   topBar: {
@@ -657,8 +657,8 @@ const styles = StyleSheet.create({
   // Summary card
   summaryCard: {
     backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#000000",
+    borderWidth: 2,
+    borderColor: "#b5e48c",
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 18,
@@ -667,20 +667,20 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#000000",
+    color: "#678067",
     marginBottom: 12,
   },
   progressTrack: {
     height: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#588157",
     backgroundColor: "#F7FAFD",
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#000000",
+    backgroundColor: "#95df92",
     borderRadius: 10,
   },
   progressMeta: {
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
   gridCard: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#b5e48c",
     borderRadius: 18,
     padding: 14,
     marginBottom: 18,
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#a3cef1",
     backgroundColor: "rgba(255,255,255,0.95)",
     flexDirection: "row",
     alignItems: "center",
@@ -751,25 +751,25 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#f06868",
     backgroundColor: "#F7FAFD",
     overflow: "hidden",
   },
   slotProgressFill: {
     height: "100%",
-    backgroundColor: "#000000",
+    backgroundColor: "#f06868",
   },
   slotProgressCount: {
     fontSize: 9,
     fontWeight: "800",
-    color: "#000000",
+    color: "#a3a592",
     fontVariant: ["tabular-nums"],
   },
 
   slotComingSoon: {
     backgroundColor: "#f8f5f1",
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#a3cef1",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -511,7 +511,7 @@ export default function ChallengesScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#494a4a",
+    backgroundColor: "#e7eff0",
   },
 
   topBar: {
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
   todayCard: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#b5e48c",
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 18,
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
   todayTitle: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#000000",
+    color: "#678067",
     flexShrink: 1,
   },
   timerPill: {
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#b5e48c",
     backgroundColor: "#F7FAFD",
   },
   timerLabel: {
@@ -594,20 +594,20 @@ const styles = StyleSheet.create({
   timerText: {
     fontSize: 13,
     fontWeight: "800",
-    color: "#000000",
+    color: "#588157",
     fontVariant: ["tabular-nums"],
   },
   progressTrack: {
     height: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#b5e48c",
     backgroundColor: "#F7FAFD",
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#000000",
+    backgroundColor: "#588157",
     borderRadius: 10,
   },
   progressMeta: {
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
   taskCard: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "##df2d2d",
+    borderColor: "#b5e48c",
     borderRadius: 22,
     paddingVertical: 16,
     paddingHorizontal: 16,
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: "#000000",
+    borderColor: "#f06868",
     backgroundColor: "#f8f5f1",
     marginRight: 14,
     marginTop: 2,
@@ -649,8 +649,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   taskCheckCircleDone: {
-    backgroundColor: "#000000",
-    borderColor: "#000000",
+    backgroundColor: "#588157",
+    borderColor: "#588157",
   },
   checkMark: {
     color: "white",
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#000000",
+    color: "#678067",
     flexShrink: 1,
   },
   taskTitleDone: {
@@ -685,12 +685,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "#F7FAFD",
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#b5e48c",
   },
   difficultyBadgeText: {
     fontSize: 10,
     fontWeight: "800",
-    color: "#000000",
+    color: "#678067",
     letterSpacing: 0.5,
   },
   taskDescription: {
