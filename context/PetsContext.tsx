@@ -16,10 +16,10 @@ export const REQUIRED_EMOJIS = 5;
 const INITIAL_PETS: PetState[] = [
   {
     id: "p1",
-    image: require("../assets/pets/fpet1.png"),
+    image: require("../assets/pets/pet1.png"),
     walkingFrames: [
-      require("../assets/pets/fpet1walking1.png"),
-      require("../assets/pets/fpet1walking2.png"),
+      require("../assets/pets/pet1walking1.png"),
+      require("../assets/pets/pet1walking2.png"),
     ],
     emoji: "🐾",
     collected: REQUIRED_EMOJIS,
@@ -27,10 +27,10 @@ const INITIAL_PETS: PetState[] = [
   },
   {
     id: "p2",
-    image: require("../assets/pets/fpet2.png"),
+    image: require("../assets/pets/pet2.png"),
     walkingFrames: [
-      require("../assets/pets/fpet2walking1.png"),
-      require("../assets/pets/fpet2walking2.png"),
+      require("../assets/pets/pet2walking1.png"),
+      require("../assets/pets/pet2walking2.png"),
     ],
     emoji: "🐟",
     collected: 0,
@@ -38,10 +38,10 @@ const INITIAL_PETS: PetState[] = [
   },
   {
     id: "p3",
-    image: require("../assets/pets/fpet3.png"),
+    image: require("../assets/pets/pet3.png"),
     walkingFrames: [
-      require("../assets/pets/fpet3walking1.png"),
-      require("../assets/pets/fpet3walking2.png"),
+      require("../assets/pets/pet3walking1.png"),
+      require("../assets/pets/pet3walking2.png"),
     ],
     emoji: "🦴",
     collected: 0,
