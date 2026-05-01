@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   },
 
   logoutText: {
-    color: "#9A9696",
+    color: "#de2c44",
     fontWeight: "600",
   },
 });

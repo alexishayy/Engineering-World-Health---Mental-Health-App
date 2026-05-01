@@ -14,8 +14,10 @@ export default function AboutScreen() {
         {/* CONTENT CARD */}
         <View style={styles.card}>
           <Text style={styles.text}>
-            This app is designed to help users build healthy habits, track
-            progress, and stay consistent with their daily goals.
+            TinyWins helps you build positive habits—not by blocking bad content, 
+            but by encouraging good ones. Each day, you'll receive three personalized 
+            challenges (like taking a walk or complimenting a friend) designed to 
+            boost self-esteem, emotional intelligence, and self-awareness.
           </Text>
 
           <Text style={styles.text}>
@@ -23,7 +25,7 @@ export default function AboutScreen() {
           </Text>
 
           <Text style={styles.text}>
-            Built using React Native and Expo.
+            Joined April 2026
           </Text>
         </View>
 
