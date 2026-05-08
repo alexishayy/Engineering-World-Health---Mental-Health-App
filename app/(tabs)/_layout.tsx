@@ -1,17 +1,15 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import ProfileAvatarButton from "../../components/ProfileAvatarButton";
-const BG = "#4f8f52";
+import { Image } from "react-native";
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: true,
+        tabBarShowLabel: false,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          backgroundColor: "#1f1f1f",
+          backgroundColor: "#91b39b",
           borderTopWidth: 0,
           height: 62,
           paddingBottom: 8,
@@ -23,16 +21,17 @@ export default function TabLayout() {
 
         tabBarActiveTintColor: "#ffffff",
         tabBarInactiveTintColor: "#aaaaaa",
-
-        sceneStyle: { backgroundColor: BG },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({size }) => (
+            <Image
+              source={require("../../assets/images/home-icon.png")}
+              style={{ width: size + 10, height: size + 10, resizeMode: "contain" }}
+              />
           ),
         }}
       />
@@ -42,7 +41,10 @@ export default function TabLayout() {
         options={{
           title: "Challenges",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="list-outline" size={size} color={color} />
+            <Image
+              source={require("../../assets/images/challenges-icon.png")}
+              style={{ width: size + 10, height: size + 10, resizeMode: "contain" }}
+              />
           ),
         }}
       />
@@ -52,7 +54,10 @@ export default function TabLayout() {
         options={{
           title: "Pets",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="paw-outline" size={size} color={color} />
+            <Image
+              source={require("../../assets/images/pets-icon.png")}
+              style={{ width: size + 10, height: size + 10, resizeMode: "contain" }}
+              />
           ),
         }}
       />
@@ -62,7 +67,10 @@ export default function TabLayout() {
         options={{
           title: "Friends",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people-outline" size={size} color={color} />
+          <Image
+              source={require("../../assets/images/feed-icon.png")}
+              style={{ width: size + 10, height: size + 10, resizeMode: "contain" }}
+              />
           ),
         }}
       />
@@ -72,10 +80,14 @@ export default function TabLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+          <Image
+              source={require("../../assets/images/profile-icon.png")}
+              style={{ width: size + 10, height: size + 10, resizeMode: "contain" }}
+              />
           ),
         }}
       />
     </Tabs>
   );
+
 }
