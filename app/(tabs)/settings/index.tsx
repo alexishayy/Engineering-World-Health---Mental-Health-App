@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
-  const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
   return (
@@ -22,57 +21,87 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.container}>
-        {/* CARD */}
+        {/* SETTINGS CARD */}
         <View style={styles.card}>
+          {/* Account */}
           <Pressable
             onPress={() => router.push("/settings/account")}
-            style={styles.row}
+            style={({ pressed }) => [
+              styles.row,
+              pressed && styles.rowPressed,
+            ]}
           >
             <Text style={styles.label}>Account details</Text>
-            <Ionicons name="chevron-forward" size={20} color="#588157" />
+
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color="#588157"
+            />
           </Pressable>
 
+          {/* Activity */}
           <Pressable
             onPress={() => router.push("/settings/activity")}
-            style={styles.row}
+            style={({ pressed }) => [
+              styles.row,
+              pressed && styles.rowPressed,
+            ]}
           >
             <Text style={styles.label}>Activity</Text>
-            <Ionicons name="chevron-forward" size={20} color="#588157" />
+
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color="#588157"
+            />
           </Pressable>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Notifications</Text>
-            <Switch
-              value={notifications}
-              onValueChange={setNotifications}
-              trackColor={{ false: "red", true: "#A3CEF1" }}
-              thumbColor="white"
-            />
-          </View>
-
+          {/* Dark Mode */}
           <View style={styles.row}>
             <Text style={styles.label}>Dark Mode</Text>
+
             <Switch
               value={darkMode}
               onValueChange={setDarkMode}
-              trackColor={{ false: "red", true: "#A3CEF1" }}
+              trackColor={{
+                false: "red",
+                true: "#A3CEF1",
+              }}
               thumbColor="white"
             />
           </View>
 
+          {/* About */}
           <Pressable
             onPress={() => router.push("/settings/about")}
-            style={styles.row}
+            style={({ pressed }) => [
+              styles.row,
+              pressed && styles.rowPressed,
+            ]}
           >
             <Text style={styles.label}>About</Text>
-            <Ionicons name="chevron-forward" size={20} color="#588157" />
+
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color="#588157"
+            />
           </Pressable>
         </View>
 
         {/* LOGOUT */}
-        <Pressable style={styles.logout}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.logout,
+            pressed && styles.logoutPressed,
+          ]}
+        >
           <Text style={styles.logoutText}>Logout</Text>
         </Pressable>
+
+        {/* Bottom spacing */}
+        <View style={{ height: 40 }} />
       </View>
     </SafeAreaView>
   );
@@ -84,15 +113,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F5F1",
   },
 
+  /* HEADER */
   header: {
     backgroundColor: "#A3CEF1",
-    paddingVertical: 20,
+    paddingVertical: 22,
     alignItems: "center",
     justifyContent: "center",
   },
 
   headerText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
     color: "white",
   },
@@ -100,44 +130,64 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 18,
-    paddingTop: 20,
+    paddingTop: 22,
   },
 
+  /* CARD */
   card: {
     backgroundColor: "#E7EFF0",
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: "#B5E48C",
     overflow: "hidden",
   },
 
+  /* ROWS */
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 26,
-    paddingHorizontal: 20,
+
+    paddingVertical: 28,
+    paddingHorizontal: 22,
+
     borderBottomWidth: 1,
     borderBottomColor: "rgba(0,0,0,0.05)",
   },
 
-  label: {
-    fontSize: 16,
-    color: "#588157",
+  rowPressed: {
+    backgroundColor: "#dce7ea",
   },
 
+  label: {
+    fontSize: 17,
+    color: "#588157",
+    fontWeight: "500",
+  },
+
+  /* LOGOUT */
   logout: {
-    marginTop: 30,
+    marginTop: 32,
+
     backgroundColor: "#E7EFF0",
-    paddingVertical: 18,
-    borderRadius: 20,
+
+    paddingVertical: 20,
+
+    borderRadius: 22,
+
     alignItems: "center",
+
     borderWidth: 1,
     borderColor: "#B5E48C",
   },
 
+  logoutPressed: {
+    backgroundColor: "#dce7ea",
+  },
+
   logoutText: {
-    color: "#de2c44",
+    fontSize: 17,
     fontWeight: "600",
+    color: "#9A9696",
   },
 });
