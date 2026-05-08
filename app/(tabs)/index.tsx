@@ -2,11 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Image,
-  ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
@@ -95,7 +93,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Goals List */}
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <View>
             {goals.map((goal) => (
               <View key={goal.id} style={styles.goalCard}>
                 <View style={styles.goalEmoji}>
@@ -108,19 +106,10 @@ export default function HomeScreen() {
                   <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
                 </View>
                 <View style={styles.goalRight}>
-                  <Text style={styles.goalHearts}>
-                    {goal.hearts} 🤍
-                  </Text>
-                  <TouchableOpacity
-                    style={[styles.checkBox, goal.done && styles.checkBoxDone]}
-                    onPress={() => toggleGoal(goal.id)}
-                  >
-                    {goal.done && <Text style={styles.checkMark}>✓</Text>}
-                  </TouchableOpacity>
                 </View>
               </View>
             ))}
-          </ScrollView>
+          </View>
         </View>
       </SafeAreaView>
     </View>
