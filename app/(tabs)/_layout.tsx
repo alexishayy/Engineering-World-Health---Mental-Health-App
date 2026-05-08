@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-
+import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 const BG = "#4f8f52";
 
 export default function TabLayout() {

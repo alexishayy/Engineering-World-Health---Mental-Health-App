@@ -25,7 +25,7 @@ const backgroundImg = () => {
 
 const PET_SIZE = 88;
 const WALK_SPEED_PX_PER_SEC = 45;
-const FRAME_MS = 280;
+const FRAME_MS = 100;
 
 function WalkingPet({
   pet,
@@ -48,9 +48,12 @@ function WalkingPet({
 
   // Alternate walking frame
   useEffect(() => {
-    const id = setInterval(() => setFrame((f) => (f + 1) % 2), FRAME_MS);
+    const id = setInterval(
+      () => setFrame((f) => (f + 1) % pet.walkingFrames.length),
+      FRAME_MS
+    );
     return () => clearInterval(id);
-  }, []);
+  }, [pet.walkingFrames.length]);
 
   // Wander loop
   useEffect(() => {
@@ -109,9 +112,7 @@ function WalkingPet({
   }, [maxX, maxY, xAnim, yAnim]);
 
   return (
-    <Animated.Image
-      source={pet.walkingFrames[frame]}
-      resizeMode="contain"
+    <Animated.View
       style={[
         styles.walkingPet,
         {
@@ -122,7 +123,14 @@ function WalkingPet({
           ],
         },
       ]}
-    />
+    >
+      <Image
+        key={`${pet.id}-${frame}`}
+        source={pet.walkingFrames[frame]}
+        resizeMode="contain"
+        style={styles.walkingPetImage}
+      />
+    </Animated.View>
   );
 }
 
@@ -261,5 +269,9 @@ const styles = StyleSheet.create({
     height: PET_SIZE,
     top: 0,
     left: 0,
+  },
+  walkingPetImage: {
+    width: "100%",
+    height: "100%",
   },
 });
