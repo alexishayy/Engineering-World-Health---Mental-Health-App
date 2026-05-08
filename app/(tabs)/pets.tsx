@@ -589,7 +589,7 @@ export default function PetsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#494a4a",
+    backgroundColor: "#e7eff0",
   },
 
   topBar: {
@@ -625,8 +625,8 @@ const styles = StyleSheet.create({
   // Summary card
   summaryCard: {
     backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#000000",
+    borderWidth: 2,
+    borderColor: "#b5e48c",
     borderRadius: 18,
     paddingVertical: 18,
     paddingHorizontal: 18,
@@ -635,20 +635,20 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#000000",
+    color: "#678067",
     marginBottom: 12,
   },
   progressTrack: {
     height: 14,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#588157",
     backgroundColor: "#F7FAFD",
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#000000",
+    backgroundColor: "#95df92",
     borderRadius: 10,
   },
   progressMeta: {
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
   gridCard: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#000000",
+    borderColor: "#b5e48c",
     borderRadius: 18,
     padding: 14,
     marginBottom: 18,
