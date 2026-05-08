@@ -76,9 +76,9 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          title: "Profile",
+          title: "Settings",
           tabBarIcon: ({ color, size }) => (
           <Image
               source={require("../../assets/images/profile-icon.png")}

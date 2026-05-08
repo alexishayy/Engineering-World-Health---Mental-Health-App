@@ -15,14 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
-
-type PetState = {
-  id: string;
-  image: any;
-  emoji: string;
-  collected: number;
-  unlocked: boolean;
-};
+import { REQUIRED_EMOJIS, usePets } from "../../context/PetsContext";
 
 type Reward = {
   gains: { petId: string; emoji: string }[];
@@ -31,33 +24,8 @@ type Reward = {
 
 const STORAGE_KEY_LAST_CLAIM = "pets_free_gift_last_claim_timestamp";
 const COOLDOWN_MS = 30000;
-const REQUIRED_EMOJIS = 5;
 const TOTAL_PETS = 3;
 const COMING_SOON_SLOTS = 6;
-
-const INITIAL_PETS: PetState[] = [
-  {
-    id: "p1",
-    image: require("../../assets/pets/fpet1.png"),
-    emoji: "🐾",
-    collected: REQUIRED_EMOJIS,
-    unlocked: true,
-  },
-  {
-    id: "p2",
-    image: require("../../assets/pets/fpet2.png"),
-    emoji: "🐟",
-    collected: 0,
-    unlocked: false,
-  },
-  {
-    id: "p3",
-    image: require("../../assets/pets/fpet3.png"),
-    emoji: "🦴",
-    collected: 0,
-    unlocked: false,
-  },
-];
 
 function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -69,7 +37,7 @@ function formatSeconds(s: number) {
 }
 
 export default function PetsScreen() {
-  const [pets, setPets] = useState<PetState[]>(INITIAL_PETS);
+  const { pets, setPets } = usePets();
 
   const unlockedCount = pets.filter((p) => p.unlocked).length;
   const progressPct = Math.round((unlockedCount / TOTAL_PETS) * 100);

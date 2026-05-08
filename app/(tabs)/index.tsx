@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Easing,
   Image,
+  LayoutChangeEvent,
   StyleSheet,
   Text,
   View
@@ -15,6 +17,129 @@ const GOALS = [
   { id: 2, title: "Go birding and try to find your state bird", subtitle: "Nature", done: true },
   { id: 3, title: "Think of your hottest take. Make a piece of art bsed on it that obscures its meaning", subtitle: "Art", done: true },
 ];
+import { PetState, usePets } from "../../context/PetsContext";
+
+const dayBg = require("../../assets/images/dayBg.png");
+const nightBg = require("../../assets/images/nightBg.png");
+const sunsetBg = require("../../assets/images/sunset.jpg");
+
+const backgroundImg = () => {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 17) return dayBg;
+  if (hour >= 17 && hour < 21) return sunsetBg;
+  return nightBg;
+};
+
+const PET_SIZE = 88;
+const WALK_SPEED_PX_PER_SEC = 45;
+const FRAME_MS = 100;
+
+function WalkingPet({
+  pet,
+  bounds,
+}: {
+  pet: PetState;
+  bounds: { w: number; h: number };
+}) {
+  const maxX = Math.max(1, bounds.w - PET_SIZE);
+  const maxY = Math.max(1, bounds.h - PET_SIZE);
+
+  const xRef = useRef(Math.random() * maxX);
+  const yRef = useRef(Math.random() * maxY);
+
+  const xAnim = useRef(new Animated.Value(xRef.current)).current;
+  const yAnim = useRef(new Animated.Value(yRef.current)).current;
+
+  const [frame, setFrame] = useState(0);
+  const [facingLeft, setFacingLeft] = useState(false);
+
+  // Alternate walking frame
+  useEffect(() => {
+    const id = setInterval(
+      () => setFrame((f) => (f + 1) % pet.walkingFrames.length),
+      FRAME_MS
+    );
+    return () => clearInterval(id);
+  }, [pet.walkingFrames.length]);
+
+  // Wander loop
+  useEffect(() => {
+    let cancelled = false;
+    let pauseId: ReturnType<typeof setTimeout> | null = null;
+    let anim: Animated.CompositeAnimation | null = null;
+
+    const pickAndMove = () => {
+      if (cancelled) return;
+
+      const targetX = Math.random() * maxX;
+      const targetY = Math.random() * maxY;
+      const dist = Math.hypot(
+        targetX - xRef.current,
+        targetY - yRef.current
+      );
+      const duration = Math.max(
+        700,
+        (dist / WALK_SPEED_PX_PER_SEC) * 1000
+      );
+
+      setFacingLeft(targetX < xRef.current);
+
+      anim = Animated.parallel([
+        Animated.timing(xAnim, {
+          toValue: targetX,
+          duration,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(yAnim, {
+          toValue: targetY,
+          duration,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ]);
+
+      anim.start(({ finished }) => {
+        xRef.current = targetX;
+        yRef.current = targetY;
+        if (finished && !cancelled) {
+          const pause = 300 + Math.random() * 1200;
+          pauseId = setTimeout(pickAndMove, pause);
+        }
+      });
+    };
+
+    pickAndMove();
+
+    return () => {
+      cancelled = true;
+      if (pauseId) clearTimeout(pauseId);
+      anim?.stop();
+    };
+  }, [maxX, maxY, xAnim, yAnim]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.walkingPet,
+        {
+          transform: [
+            { translateX: xAnim },
+            { translateY: yAnim },
+            { scaleX: facingLeft ? -1 : 1 },
+          ],
+        },
+      ]}
+    >
+      <Image
+        key={`${pet.id}-${frame}`}
+        source={pet.walkingFrames[frame]}
+        resizeMode="contain"
+        style={styles.walkingPetImage}
+      />
+    </Animated.View>
+  );
+}
 
 export default function HomeScreen() {
   const [currentBg, setCurrentBg] = useState(background);
@@ -33,6 +158,36 @@ export default function HomeScreen() {
     const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
     return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  const { pets } = usePets();
+  const unlockedPets = pets.filter((p) => p.unlocked);
+
+  const [playBounds, setPlayBounds] = useState<{ w: number; h: number } | null>(
+    null
+  );
+
+  const onPlayAreaLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (
+      !playBounds ||
+      Math.abs(playBounds.w - width) > 1 ||
+      Math.abs(playBounds.h - height) > 1
+    ) {
+      setPlayBounds({ w: width, h: height });
+    }
+  };
+
+  const fadeToNewBackground = (newImage: any) => {
+    if (newImage === currentBg) return;
+
+    setNextBg(newImage);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start(() => {
+      setCurrentBg(newImage);
+      fadeAnim.setValue(0);
+    });
   };
 
   const toggleGoal = (id: number) => {
@@ -44,6 +199,10 @@ export default function HomeScreen() {
   const goalsLeft = goals.filter((g) => !g.done).length;
 
    return (
+    return () => clearInterval(interval);
+  }, [currentBg]);
+
+  return (
     <View style={{ flex: 1 }}>
       <Image source={currentBg} style={styles.backgroundImg} />
       <Animated.Image
@@ -111,6 +270,16 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
+
+        <View style={styles.header} />
+
+        <View style={styles.playArea} onLayout={onPlayAreaLayout}>
+          {playBounds
+            ? unlockedPets.map((p) => (
+                <WalkingPet key={p.id} pet={p} bounds={playBounds} />
+              ))
+            : null}
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -121,7 +290,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-   backgroundImg: {
+  backgroundImg: {
     position: "absolute",
     width: "100%",
     height: "100%",
@@ -162,8 +331,20 @@ const styles = StyleSheet.create({
   },
   streakText: { fontSize: 14, fontWeight: "700", color: "#1B1B1B" },
 
-  body: {
+  playArea: {
     flex: 1,
+    overflow: "hidden",
+  },
+  walkingPet: {
+    position: "absolute",
+    width: PET_SIZE,
+    height: PET_SIZE,
+    top: 0,
+    left: 0,
+  },
+  walkingPetImage: {
+    width: "100%",
+    height: "100%",
   },
 
   panel: {
