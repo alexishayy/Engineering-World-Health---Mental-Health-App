@@ -37,19 +37,6 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="challenges"
-        options={{
-          title: "Challenges",
-          tabBarIcon: ({ color, size }) => (
-            <Image
-              source={require("../../assets/images/challenges-icon.png")}
-              style={{ width: size + 10, height: size + 10, resizeMode: "contain" }}
-              />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
         name="pets"
         options={{
           title: "Pets",

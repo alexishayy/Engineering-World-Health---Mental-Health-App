@@ -14,12 +14,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 const background = require( "../../assets/images/background.jpeg");
 
-const GOALS = [
-  { id: 1, title: "Take your shoes off and put your feet in grass for at least 3 minutes", subtitle: "Nature", done: true },
-  { id: 2, title: "Go birding and try to find your state bird", subtitle: "Nature", done: true },
-  { id: 3, title: "Think of your hottest take. Make a piece of art bsed on it that obscures its meaning", subtitle: "Art", done: true },
-];
 import { PetState, usePets } from "../../context/PetsContext";
+import { Category, getRandomDailyTasks } from "../../data/dailyTasks";
+
+const CATEGORY_EMOJI: Record<Category, string> = {
+  Movement: "🏃",
+  Nature: "🌿",
+  Art: "🎨",
+  Journaling: "📓",
+  Social: "👋",
+  "Cooking/Baking": "🍳",
+};
 
 const PET_SIZE = 88;
 const WALK_SPEED_PX_PER_SEC = 45;
@@ -134,7 +139,7 @@ function WalkingPet({
 }
 
 export default function HomeScreen() {
-  const [goals, setGoals] = useState(GOALS);
+  const [dailyChallenges] = useState(() => getRandomDailyTasks(3));
   const [TimeRanges, setTimer] = useState(6 * 3600 + 23 * 60 + 46);
 
   useEffect(() => {
@@ -184,14 +189,6 @@ export default function HomeScreen() {
     }
   };
 
-  const toggleGoal = (id: number) => {
-    setGoals((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, done: !g.done } : g))
-    );
-  };
-
-  const goalsLeft = goals.filter((g) => !g.done).length;
-
   return (
     <View style={{ flex: 1 }}>
       <Image source={background} style={styles.backgroundImg} />
@@ -234,10 +231,10 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Goals Header */}
+          {/* Challenges Header */}
           <View style={styles.goalsHeader}>
             <Text style={styles.goalsHeaderText}>
-              📅 {goalsLeft} goals left for today!
+              📅 Today's Challenges
             </Text>
             <View style={styles.goalsHeaderIcons}>
               <Text style={{ marginRight: 8 }}>≡</Text>
@@ -245,21 +242,22 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Goals List */}
+          {/* Challenges List */}
           <View>
-            {goals.map((goal) => (
-              <View key={goal.id} style={styles.goalCard}>
+            {dailyChallenges.map((task) => (
+              <View key={task.id} style={styles.goalCard}>
                 <View style={styles.goalEmoji}>
                   <Text style={{ fontSize: 24 }}>
-                    {goal.id === 1 ? "😊" : goal.id === 2 ? "🦒" : goal.id === 3 ? "💧" : "🚶"}
+                    {CATEGORY_EMOJI[task.categories[0]] ?? "✨"}
                   </Text>
                 </View>
                 <View style={styles.goalText}>
-                  <Text style={styles.goalTitle}>{goal.title}</Text>
-                  <Text style={styles.goalSubtitle}>{goal.subtitle}</Text>
+                  <Text style={styles.goalTitle}>{task.title}</Text>
+                  <Text style={styles.goalSubtitle}>
+                    {task.categories.join(" · ")} · {task.estimatedTime}
+                  </Text>
                 </View>
-                <View style={styles.goalRight}>
-                </View>
+                <View style={styles.goalRight} />
               </View>
             ))}
           </View>
