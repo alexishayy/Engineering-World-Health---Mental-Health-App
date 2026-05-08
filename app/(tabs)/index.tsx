@@ -8,6 +8,8 @@ import {
   Text,
   View
 } from "react-native";
+import { Image as ExpoImage } from "expo-image";
+import { Asset } from "expo-asset";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 const background = require( "../../assets/images/background.jpeg");
@@ -18,17 +20,6 @@ const GOALS = [
   { id: 3, title: "Think of your hottest take. Make a piece of art bsed on it that obscures its meaning", subtitle: "Art", done: true },
 ];
 import { PetState, usePets } from "../../context/PetsContext";
-
-const dayBg = require("../../assets/images/dayBg.png");
-const nightBg = require("../../assets/images/nightBg.png");
-const sunsetBg = require("../../assets/images/sunset.jpg");
-
-const backgroundImg = () => {
-  const hour = new Date().getHours();
-  if (hour >= 6 && hour < 17) return dayBg;
-  if (hour >= 17 && hour < 21) return sunsetBg;
-  return nightBg;
-};
 
 const PET_SIZE = 88;
 const WALK_SPEED_PX_PER_SEC = 45;
@@ -131,10 +122,11 @@ function WalkingPet({
         },
       ]}
     >
-      <Image
-        key={`${pet.id}-${frame}`}
+      <ExpoImage
         source={pet.walkingFrames[frame]}
-        resizeMode="contain"
+        contentFit="contain"
+        cachePolicy="memory-disk"
+        transition={0}
         style={styles.walkingPetImage}
       />
     </Animated.View>
@@ -142,11 +134,8 @@ function WalkingPet({
 }
 
 export default function HomeScreen() {
-  const [currentBg, setCurrentBg] = useState(background);
-  const [nextBg, setNextBg] = useState(background);
   const [goals, setGoals] = useState(GOALS);
   const [TimeRanges, setTimer] = useState(6 * 3600 + 23 * 60 + 46);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const t = setInterval(() => setTimer((s) => (s > 0 ? s - 1 : 0)), 1000);
@@ -158,8 +147,27 @@ export default function HomeScreen() {
     const m = Math.floor((s % 3600) / 60);
     const sec = s % 60;
     return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  };
+
   const { pets } = usePets();
   const unlockedPets = pets.filter((p) => p.unlocked);
+
+  const [spritesReady, setSpritesReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const modules = unlockedPets.flatMap((p) => p.walkingFrames);
+    Asset.loadAsync(modules)
+      .then(() => {
+        if (!cancelled) setSpritesReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setSpritesReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [unlockedPets.length]);
 
   const [playBounds, setPlayBounds] = useState<{ w: number; h: number } | null>(
     null
@@ -176,20 +184,6 @@ export default function HomeScreen() {
     }
   };
 
-  const fadeToNewBackground = (newImage: any) => {
-    if (newImage === currentBg) return;
-
-    setNextBg(newImage);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start(() => {
-      setCurrentBg(newImage);
-      fadeAnim.setValue(0);
-    });
-  };
-
   const toggleGoal = (id: number) => {
     setGoals((prev) =>
       prev.map((g) => (g.id === id ? { ...g, done: !g.done } : g))
@@ -198,17 +192,9 @@ export default function HomeScreen() {
 
   const goalsLeft = goals.filter((g) => !g.done).length;
 
-   return (
-    return () => clearInterval(interval);
-  }, [currentBg]);
-
   return (
     <View style={{ flex: 1 }}>
-      <Image source={currentBg} style={styles.backgroundImg} />
-      <Animated.Image
-        source={nextBg}
-        style={[styles.backgroundImg, { opacity: fadeAnim }]}
-      />
+      <Image source={background} style={styles.backgroundImg} />
 
       <SafeAreaView style={styles.screen} edges={["top"]}>
         {/* Top Bar */}
@@ -217,6 +203,14 @@ export default function HomeScreen() {
           <View style={styles.streakPill}>
             <Text style={styles.streakText}>🔥 Streak: 12</Text>
           </View>
+        </View>
+
+        <View style={styles.playArea} onLayout={onPlayAreaLayout}>
+          {playBounds && spritesReady
+            ? unlockedPets.map((p) => (
+                <WalkingPet key={p.id} pet={p} bounds={playBounds} />
+              ))
+            : null}
         </View>
 
         {/* Bottom Sheet Style Panel */}
@@ -269,16 +263,6 @@ export default function HomeScreen() {
               </View>
             ))}
           </View>
-        </View>
-
-        <View style={styles.header} />
-
-        <View style={styles.playArea} onLayout={onPlayAreaLayout}>
-          {playBounds
-            ? unlockedPets.map((p) => (
-                <WalkingPet key={p.id} pet={p} bounds={playBounds} />
-              ))
-            : null}
         </View>
       </SafeAreaView>
     </View>
@@ -348,10 +332,7 @@ const styles = StyleSheet.create({
   },
 
   panel: {
-    flex: 1,
-    marginTop: "auto",
     backgroundColor: "#cad6c3",
-    opacity: 0.85,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 16,
