@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCGWjm_X9thiNNFQ0e7MtCZWmlKKTq6tL8",
-  authDomain: "mental-health-app-ewh.firebaseapp.com",
-  projectId: "mental-health-app-ewh",
-  storageBucket: "mental-health-app-ewh.firebasestorage.app",
-  messagingSenderId: "121234910977",
-  appId: "1:121234910977:web:b794c3bc271ab894553500",
+  apiKey: process.env.EXPO_PUBLIC_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_APP_ID,
 };
 
 // Initialize Firebase
