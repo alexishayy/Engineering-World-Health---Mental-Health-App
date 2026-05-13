@@ -1,413 +1,471 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
-const dayBg = require( "../../assets/images/dayBg.png");
-const nightBg = require( "../../assets/images/nightBg.png");
-const sunsetBg = require("../../assets/images/sunset.jpg");
 
+type Friend = {
+  id: string;
+  name: string;
+  initial: string;
+  color: string;
+  streak: number;
+};
 
-// dummy data
-const friendData = [
-  { id: "1", name: "Username1" },
-  { id: "2", name: "Username2" },
-  { id: "3", name: "Username3" },
+type FeedItem = {
+  id: string;
+  name: string;
+  initial: string;
+  avatarColor: string;
+  activity: string;
+  time: string;
+};
 
+type Announcement = {
+  emoji: string;
+  text: string;
+};
+
+const TOTAL_DAILY_CHALLENGES = 3;
+const COMPLETED_DAILY_CHALLENGES = 1;
+const REMAINING_DAILY_CHALLENGES =
+  TOTAL_DAILY_CHALLENGES - COMPLETED_DAILY_CHALLENGES;
+
+const FRIENDS: Friend[] = [
+  { id: "1", name: "Maya", initial: "M", color: "#FF9600", streak: 12 },
+  { id: "2", name: "Leo", initial: "L", color: "#1CB0F6", streak: 5 },
+  { id: "3", name: "Ava", initial: "A", color: "#CE82FF", streak: 27 },
+  { id: "4", name: "Noah", initial: "N", color: "#58CC02", streak: 3 },
+  { id: "5", name: "Ivy", initial: "I", color: "#FF4B4B", streak: 14 },
+  { id: "6", name: "Theo", initial: "T", color: "#FFC800", streak: 9 },
 ];
 
-type Friend = { id: string; name: string };
+const FEED: FeedItem[] = [
+  {
+    id: "f1",
+    name: "Maya",
+    initial: "M",
+    avatarColor: "#FF9600",
+    activity: "completed a mindfulness challenge",
+    time: "2m ago",
+  },
+  {
+    id: "f2",
+    name: "Leo",
+    initial: "L",
+    avatarColor: "#1CB0F6",
+    activity: "reached a 5-day streak",
+    time: "23m ago",
+  },
+  {
+    id: "f3",
+    name: "Ava",
+    initial: "A",
+    avatarColor: "#CE82FF",
+    activity: "took care of their pet",
+    time: "1h ago",
+  },
+  {
+    id: "f4",
+    name: "Noah",
+    initial: "N",
+    avatarColor: "#58CC02",
+    activity: "finished today's check-in",
+    time: "3h ago",
+  },
+  {
+    id: "f5",
+    name: "Ivy",
+    initial: "I",
+    avatarColor: "#FF4B4B",
+    activity: "earned the Early Bird badge",
+    time: "Yesterday",
+  },
+];
 
-const backgroundImg = () => {
-  const hour = new Date().getHours();
+const ANNOUNCEMENTS: Announcement[] = [
+  // A. Congratulations from friends
+  { emoji: "👏", text: "Maya cheered you on!" },
+  { emoji: "🎉", text: "Leo congratulated you on your streak!" },
+  { emoji: "💌", text: "Ava sent you encouragement!" },
+  // B. Daily challenge reminder
+  {
+    emoji: "📅",
+    text: `You have ${REMAINING_DAILY_CHALLENGES} challenge${
+      REMAINING_DAILY_CHALLENGES === 1 ? "" : "s"
+    } left today!`,
+  },
+  // C. Mindfulness / well-being fun facts
+  { emoji: "🌿", text: "Taking 3 deep breaths can help lower stress." },
+  { emoji: "🚶", text: "A short walk can improve your mood." },
+  { emoji: "✨", text: "Writing down one good thing can build gratitude." },
+];
 
-  if (hour >= 6 && hour < 17) {
-    return dayBg;      
-  } else if (hour >= 17 && hour < 21) {
-    return sunsetBg;  
-  } else {
-    return nightBg;    
-  }
+const ANNOUNCEMENT_INTERVAL_MS = 4000;
+const ANNOUNCEMENT_FADE_MS = 350;
+
+function Avatar({
+  initial,
+  color,
+  size = 48,
+}: {
+  initial: string;
+  color: string;
+  size?: number;
+}) {
+  return (
+    <View
+      style={[
+        styles.avatar,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: color,
+        },
+      ]}
+    >
+      <Text style={[styles.avatarInitial, { fontSize: size * 0.42 }]}>
+        {initial}
+      </Text>
+    </View>
+  );
 }
+
 export default function FriendsScreen() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [friends, setFriends] = useState<Friend[]>(friendData);
+  const [cheered, setCheered] = useState<Set<string>>(new Set());
+  const [announceIdx, setAnnounceIdx] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  // remove-friend modal state
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
-  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
-
-  const filteredFriends = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return friends;
-    return friends.filter((f) => f.name.toLowerCase().includes(q));
-  }, [friends, searchQuery]);
-
-  const listRef = useRef<FlatList>(null);
-
-  const handleSearch = (text: string) => setSearchQuery(text);
-
-  const handleAddFriend = () => {
-    const name = searchQuery.trim();
-    if (!name) return;
-
-    const exists = friends.some(
-      (f) => f.name.toLowerCase() === name.toLowerCase()
-    );
-    if (exists) return;
-
-    setFriends((prev) => [{ id: String(Date.now()), name }, ...prev]);
-    setSearchQuery("");
-  };
-
-  const openRemoveModal = (friend: Friend) => {
-    setSelectedFriend(friend);
-    setIsRemoveModalOpen(true);
-  };
-
-  const closeRemoveModal = () => {
-    setIsRemoveModalOpen(false);
-    setSelectedFriend(null);
-  };
-
-  const removeSelectedFriend = () => {
-    if (!selectedFriend) return;
-    setFriends((prev) => prev.filter((f) => f.id !== selectedFriend.id));
-    closeRemoveModal();
-  };
-
-  const [currentBg, setCurrentBg] = useState(backgroundImg());
-  const [nextBg, setNextBg] = useState(backgroundImg());
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const fadeToNewBackground = (newImage: any) => {
-    if (newImage === currentBg) return;
-
-    setNextBg(newImage);
-
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start(() => {
-      setCurrentBg(newImage);
-      fadeAnim.setValue(0);
+  const toggleCheer = (id: string) => {
+    setCheered((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newImage = backgroundImg();
-      fadeToNewBackground(newImage);
-    }, 60000); // check every minute
+    let cancelled = false;
+    const id = setInterval(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: ANNOUNCEMENT_FADE_MS,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (cancelled || !finished) return;
+        setAnnounceIdx((i) => (i + 1) % ANNOUNCEMENTS.length);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: ANNOUNCEMENT_FADE_MS,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, ANNOUNCEMENT_INTERVAL_MS);
 
-    return () => clearInterval(interval);
-  }, [currentBg]);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [fadeAnim]);
+
+  const announcement = ANNOUNCEMENTS[announceIdx];
 
   return (
-      <View style={{ flex: 1 }}>
-        {/* Current background */}
-        <Image source={currentBg} style={styles.backgroundImg} />
-
-        {/* Next background (animated fade) */}
-        <Animated.Image
-          source={nextBg}
-          style={[styles.backgroundImg, { opacity: fadeAnim }]}
-  />
-
-      <SafeAreaView style={styles.screen} edges={["top"]}>
-        <View style={styles.topBar}>
-          <ProfileAvatarButton size={32} />
-          <View style={styles.streakPill}>
-            <Text style={styles.streakText}>🔥 Streak : 12</Text>
+    <SafeAreaView style={styles.screen} edges={["top"]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[2]}
+      >
+        {/* 0: Header */}
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Friends</Text>
+            <Text style={styles.subtitle}>See what your friends are up to</Text>
           </View>
+          <ProfileAvatarButton size={42} />
         </View>
 
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        {/* 1: Horizontal friends row */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.friendsRow}
         >
-          <View style={styles.header}>
-            <View style={styles.headerBlock} />
-            <Text style={styles.headerText}>Add A Friend!</Text>
-
-            <View style={styles.searchRow}>
-              <View style={styles.searchContainer}>
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search or type a username..."
-                  value={searchQuery}
-                  onChangeText={handleSearch}
-                  placeholderTextColor="#4c4b4b"
-                  returnKeyType="done"
-                  onSubmitEditing={handleAddFriend}
-                />
+          {FRIENDS.map((f) => (
+            <TouchableOpacity
+              key={f.id}
+              activeOpacity={0.85}
+              style={styles.friendChip}
+            >
+              <View style={styles.friendAvatarWrap}>
+                <Avatar initial={f.initial} color={f.color} size={64} />
+                <View style={styles.streakPill}>
+                  <Text style={styles.streakPillText}>🔥{f.streak}</Text>
+                </View>
               </View>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.addFriendButton,
-                  pressed && { transform: [{ translateY: 2 }] },
-                  !searchQuery.trim() && { opacity: 0.6 },
-                ]}
-                onPress={handleAddFriend}
-                disabled={!searchQuery.trim()}
-              >
-                <Text style={styles.addFriendButtonText}>Add</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.body}>
-            <FlatList
-              ref={listRef}
-              data={filteredFriends}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => openRemoveModal(item)}
-                  style={({ pressed }) => [
-                    styles.friendItem,
-                    pressed && { transform: [{ translateY: 1 }], opacity: 0.95 },
-                  ]}
-                >
-                  <View style={styles.avatarPlaceholder} />
-                  <Text style={styles.friendName}>{item.name}</Text>
-                </Pressable>
-              )}
-              contentContainerStyle={styles.listContainer}
-              keyboardShouldPersistTaps="handled"
-              removeClippedSubviews={false}
-              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
-            />
-          </View>
-        </KeyboardAvoidingView>
-
-        {/* ✅ Remove Friend Modal */}
-        <Modal
-          visible={isRemoveModalOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={closeRemoveModal}
-        >
-          <Pressable style={styles.modalBackdrop} onPress={closeRemoveModal}>
-            <Pressable style={styles.modalCard} onPress={() => {}}>
-              <Text style={styles.modalTitle}>Friend Options</Text>
-
-              <Text style={styles.modalBodyText}>
-                {selectedFriend ? `Remove ${selectedFriend.name}?` : ""}
+              <Text style={styles.friendName} numberOfLines={1}>
+                {f.name}
               </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-              <View style={styles.modalRow}>
-                <Pressable style={styles.modalBtnGhost} onPress={closeRemoveModal}>
-                  <Text style={styles.modalBtnGhostText}>Cancel</Text>
-                </Pressable>
+        {/* 2: Sticky announcement */}
+        <View style={styles.announcementWrap}>
+          <Animated.View
+            style={[styles.announcementCard, { opacity: fadeAnim }]}
+          >
+            <Text style={styles.announcementEmoji}>{announcement.emoji}</Text>
+            <Text style={styles.announcementText} numberOfLines={2}>
+              {announcement.text}
+            </Text>
+          </Animated.View>
+        </View>
 
-                <Pressable
-                  style={styles.modalBtnDanger}
-                  onPress={removeSelectedFriend}
-                >
-                  <Text style={styles.modalBtnDangerText}>Remove Friend</Text>
-                </Pressable>
+        {/* 3: Section label */}
+        <Text style={styles.sectionLabel}>Recent activity</Text>
+
+        {/* 4+: Feed cards */}
+        {FEED.map((item) => {
+          const isCheered = cheered.has(item.id);
+          return (
+            <View key={item.id} style={styles.feedCard}>
+              <View style={styles.feedTop}>
+                <Avatar
+                  initial={item.initial}
+                  color={item.avatarColor}
+                  size={48}
+                />
+                <View style={styles.feedTextWrap}>
+                  <Text style={styles.feedNameLine}>
+                    <Text style={styles.feedName}>{item.name}</Text>
+                    <Text style={styles.feedActivity}> {item.activity}</Text>
+                  </Text>
+                  <Text style={styles.feedTime}>{item.time}</Text>
+                </View>
               </View>
-            </Pressable>
-          </Pressable>
-        </Modal>
-      </SafeAreaView>
-      </View>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => toggleCheer(item.id)}
+                style={[
+                  styles.cheerButton,
+                  isCheered && styles.cheerButtonActive,
+                ]}
+              >
+                <Text
+                  style={[styles.cheerText, isCheered && styles.cheerTextActive]}
+                >
+                  {isCheered ? "👏 Cheered!" : "👏 Cheer"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "transparent" },
-  backgroundImg: {
-  position: "absolute",
-  width: "100%",
-  height: "100%",
-  top: 0,
-  left: 0,
-  resizeMode: "cover",
-},
-  topBar: {
-    height: 64,
-    backgroundColor: "transparent",
+  screen: {
+    flex: 1,
+    backgroundColor: "#FBF7EF",
+  },
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 32,
+  },
+
+  // Header
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    marginTop: 6,
+    marginBottom: 18,
+    gap: 12,
   },
-  avatarDot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "white",
+  headerText: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 30,
+    fontWeight: "900",
+    color: "#1B1B1B",
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#777",
+    marginTop: 2,
+  },
+
+  // Horizontal friends row
+  friendsRow: {
+    paddingVertical: 4,
+    paddingRight: 8,
+    gap: 14,
+  },
+  friendChip: {
+    alignItems: "center",
+    width: 76,
+  },
+  friendAvatarWrap: {
+    width: 64,
+    height: 64,
+  },
+  friendName: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1B1B1B",
+    maxWidth: 72,
+    textAlign: "center",
   },
   streakPill: {
-    borderWidth: 1,
-    borderColor: "#C9C2B6",
+    position: "absolute",
+    bottom: -4,
+    right: -6,
+    backgroundColor: "#FFC800",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: "#FBF7EF",
+  },
+  streakPillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#1B1B1B",
+  },
+
+  // Avatar
+  avatar: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitial: {
+    color: "white",
+    fontWeight: "900",
+  },
+
+  // Sticky announcement
+  announcementWrap: {
+    // Negate the scrollContent horizontal padding so the sticky bg fills
+    // the full screen width and nothing scrolls visibly behind it.
+    marginHorizontal: -18,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 12,
     backgroundColor: "#FBF7EF",
+  },
+  announcementCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#1CB0F6",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    shadowColor: "#0A6E9F",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  announcementEmoji: {
+    fontSize: 22,
+  },
+  announcementText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "800",
+    color: "white",
+    lineHeight: 18,
+  },
+
+  // Section label
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#9A9A9A",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+
+  // Feed cards
+  feedCard: {
+    backgroundColor: "white",
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  feedTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  feedTextWrap: {
+    flex: 1,
+  },
+  feedNameLine: {
+    fontSize: 14,
+    color: "#1B1B1B",
+    lineHeight: 19,
+  },
+  feedName: {
+    fontWeight: "800",
+    color: "#1B1B1B",
+  },
+  feedActivity: {
+    fontWeight: "500",
+    color: "#444",
+  },
+  feedTime: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#9A9A9A",
+    marginTop: 3,
+  },
+  cheerButton: {
+    alignSelf: "flex-start",
+    marginTop: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
+    borderWidth: 2,
+    borderColor: "#E5E5E5",
+    backgroundColor: "#FAFAFA",
   },
-  streakText: { fontSize: 14, fontWeight: "700", color: "#1B1B1B" },
-
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    zIndex: 1,
+  cheerButtonActive: {
+    borderColor: "#58CC02",
+    backgroundColor: "#EAF8DD",
   },
-  headerBlock: {
-    position: "absolute",
-    top: 32,
-    left: 30,
-    right: 35,
-    height: 140,
-    borderRadius: 30,
-    backgroundColor: "#e7eff0",
-    borderWidth: 1.5,
-    zIndex: -1,
-  },
-  headerText: {
-    color: "#588157",
-    fontSize: 22,
+  cheerText: {
+    fontSize: 13,
     fontWeight: "800",
-    top: 45,
-    left: 35,
-  },
-
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    top: 50,
-    left: 30,
-    right: 60,
-    width: 300,
-  },
-  searchContainer: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderColor: '#b5e48c',
-    borderRadius: 50,
-    borderWidth: 1.5,
-    top: 10,
-    paddingHorizontal: 20,
-    height: 45,
-    justifyContent: "center",
-    marginRight: 10,
-  },
-  searchInput: { fontSize: 16, color: "#000" },
-
-  addFriendButton: {
-    height: 45,
-    top: 10,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    backgroundColor: "#a3cef1",
-    borderWidth: 1.2,
-    borderColor: "#a3cef1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addFriendButtonText: { color: "#ffffff", fontSize: 16, fontWeight: "900" },
-
-  body: {
-    flex: 1,
-    marginTop: 90, // ✅ spacing below Add Friend box
-  },
-
-  friendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#e7eff0",
-    borderWidth: 1.2,
-    left: 25,
-    right: 25,
-    padding: 13,
-    borderRadius: 30,
-    marginBottom: 10,
-    width: 300,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  avatarPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#ccc",
-    borderColor: '#b5e48c',
-    marginRight: 15,
-  },
-  friendName: { fontSize: 18, fontWeight: "600", color: "#333" },
-
-  listContainer: {
-    paddingTop: 5,
-    paddingHorizontal: 15,
-    paddingBottom: 30,
-  },
-
-  // Modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    padding: 18,
-    justifyContent: "center",
-  },
-  modalCard: {
-    backgroundColor: "#FBF7EF",
-    borderWidth: 1,
-    borderColor: "#C9C2B6",
-    borderRadius: 18,
-    padding: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "900",
     color: "#1B1B1B",
-    marginBottom: 10,
   },
-  modalBodyText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1B1B1B",
-    marginBottom: 14,
+  cheerTextActive: {
+    color: "#3A8A02",
   },
-  modalRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
-  modalBtnGhost: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#B7C1CC",
-    backgroundColor: "white",
-  },
-  modalBtnGhostText: { fontWeight: "900", color: "#1B1B1B" },
-
-  modalBtnDanger: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "#B42318",
-    borderWidth: 1,
-    borderColor: "#7A271A",
-  },
-  modalBtnDangerText: { fontWeight: "900", color: "white" },
 });

@@ -151,11 +151,44 @@ export const ALL_DAILY_TASKS: DailyTask[] = [
   ...HARD_TASKS,
 ];
 
-export function getRandomDailyTasks(count = 3): DailyTask[] {
-  const pool = [...ALL_DAILY_TASKS];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+export type DifficultyPattern = {
+  easy: number;
+  medium: number;
+  hard: number;
+};
+
+export const CHALLENGE_PATTERNS: DifficultyPattern[] = [
+  { easy: 1, medium: 1, hard: 1 },
+  { easy: 1, medium: 2, hard: 0 },
+  { easy: 2, medium: 0, hard: 1 },
+];
+
+function pickN<T>(pool: T[], n: number): T[] {
+  const copy = [...pool];
+  const take = Math.min(n, copy.length);
+  for (let i = 0; i < take; i++) {
+    const j = i + Math.floor(Math.random() * (copy.length - i));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
   }
-  return pool.slice(0, Math.min(count, pool.length));
+  return copy.slice(0, take);
+}
+
+export function getRandomDailyChallengeSet(): DailyTask[] {
+  const feasible = CHALLENGE_PATTERNS.filter(
+    (p) =>
+      p.easy <= EASY_TASKS.length &&
+      p.medium <= MEDIUM_TASKS.length &&
+      p.hard <= HARD_TASKS.length
+  );
+
+  if (feasible.length === 0) {
+    return pickN(ALL_DAILY_TASKS, 3);
+  }
+
+  const pattern = feasible[Math.floor(Math.random() * feasible.length)];
+  return [
+    ...pickN(EASY_TASKS, pattern.easy),
+    ...pickN(MEDIUM_TASKS, pattern.medium),
+    ...pickN(HARD_TASKS, pattern.hard),
+  ];
 }

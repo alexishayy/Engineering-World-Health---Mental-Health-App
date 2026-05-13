@@ -17,7 +17,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 
 import { PetState, usePets } from "../../context/PetsContext";
-import { Category, getRandomDailyTasks } from "../../data/dailyTasks";
+import { Category, getRandomDailyChallengeSet } from "../../data/dailyTasks";
+
 const background = require("../../assets/images/background.jpeg");
 
 const CATEGORY_EMOJI: Record<Category, string> = {
@@ -32,6 +33,13 @@ const CATEGORY_EMOJI: Record<Category, string> = {
 const PET_SIZE = 88;
 const WALK_SPEED_PX_PER_SEC = 45;
 const FRAME_MS = 100;
+
+function secondsUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return Math.max(0, Math.floor((midnight.getTime() - now.getTime()) / 1000));
+}
 
 function WalkingPet({
   pet,
@@ -137,11 +145,21 @@ function WalkingPet({
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const [dailyChallenges] = useState(() => getRandomDailyTasks(3));
-  const [TimeRanges, setTimer] = useState(6 * 3600 + 23 * 60 + 46);
+  const [dailyChallenges] = useState(() => getRandomDailyChallengeSet());
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [secondsLeft, setSecondsLeft] = useState(secondsUntilMidnight);
+
+  const toggleComplete = (id: string) => {
+    setCompletedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
-    const t = setInterval(() => setTimer((s) => (s > 0 ? s - 1 : 0)), 1000);
+    const t = setInterval(() => setSecondsLeft(secondsUntilMidnight()), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -218,54 +236,55 @@ export default function HomeScreen() {
 
         {/* Bottom Sheet Style Panel */}
         <View style={styles.panel}>
-          {/* Status Card */}
-          <View style={styles.statusCard}>
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Adventuring</Text>
-              <Text style={styles.statusTimer}>
-                back in {formatTimer(TimeRanges)}
-              </Text>
-            </View>
-            <View style={styles.statusAvatarRow}>
-              <View style={styles.heartIcon}>
-                <Text>🤍</Text>
-              </View>
-              <View style={styles.avatarTrack}>
-                <View style={styles.avatarDot} />
-              </View>
-              <View style={styles.questionBubble}>
-                <Text style={styles.questionText}>?</Text>
-              </View>
-            </View>
-          </View>
-
           {/* Challenges Header */}
           <View style={styles.goalsHeader}>
             <Text style={styles.goalsHeaderText}>📅 Today's Challenges</Text>
-            <View style={styles.goalsHeaderIcons}>
-              <Text style={{ marginRight: 8 }}>≡</Text>
-              <Text>👥</Text>
-            </View>
+            <Text style={styles.challengeCountdown}>
+              {formatTimer(secondsLeft)}
+            </Text>
           </View>
 
           {/* Challenges List */}
           <View>
-            {dailyChallenges.map((task) => (
-              <View key={task.id} style={styles.goalCard}>
-                <View style={styles.goalEmoji}>
-                  <Text style={{ fontSize: 24 }}>
-                    {CATEGORY_EMOJI[task.categories[0]] ?? "✨"}
-                  </Text>
+            {dailyChallenges.map((task) => {
+              const done = completedIds.has(task.id);
+              return (
+                <View
+                  key={task.id}
+                  style={[styles.goalCard, done && styles.goalCardDone]}
+                >
+                  <Pressable
+                    onPress={() => toggleComplete(task.id)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Mark "${task.title}" as ${
+                      done ? "incomplete" : "complete"
+                    }`}
+                    style={[styles.goalEmoji, done && styles.goalEmojiDone]}
+                  >
+                    <Text
+                      style={[
+                        { fontSize: 24 },
+                        done && styles.goalEmojiTextDone,
+                      ]}
+                    >
+                      {CATEGORY_EMOJI[task.categories[0]] ?? "✨"}
+                    </Text>
+                  </Pressable>
+                  <View style={styles.goalText}>
+                    <Text
+                      style={[styles.goalTitle, done && styles.goalTitleDone]}
+                    >
+                      {task.title}
+                    </Text>
+                    <Text style={styles.goalSubtitle}>
+                      {task.categories.join(" · ")} · {task.estimatedTime}
+                    </Text>
+                  </View>
+                  <View style={styles.goalRight} />
                 </View>
-                <View style={styles.goalText}>
-                  <Text style={styles.goalTitle}>{task.title}</Text>
-                  <Text style={styles.goalSubtitle}>
-                    {task.categories.join(" · ")} · {task.estimatedTime}
-                  </Text>
-                </View>
-                <View style={styles.goalRight} />
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       </SafeAreaView>
@@ -403,6 +422,12 @@ const styles = StyleSheet.create({
   },
   goalsHeaderText: { fontSize: 13, fontWeight: "600", color: "#444" },
   goalsHeaderIcons: { flexDirection: "row", alignItems: "center" },
+  challengeCountdown: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#444",
+    fontVariant: ["tabular-nums"],
+  },
 
   // Goal Cards
   goalCard: {
@@ -421,6 +446,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10,
+  },
+  goalCardDone: {
+    backgroundColor: "#F0F0F0",
+  },
+  goalEmojiDone: {
+    backgroundColor: "#4B5563",
+  },
+  goalEmojiTextDone: {
+    opacity: 0.55,
+  },
+  goalTitleDone: {
+    textDecorationLine: "line-through",
+    color: "#9A9A9A",
   },
   goalText: { flex: 1 },
   goalTitle: { fontSize: 14, fontWeight: "700", color: "#1B1B1B" },
