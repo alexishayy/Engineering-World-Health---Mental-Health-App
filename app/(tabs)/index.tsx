@@ -1,3 +1,7 @@
+import { useAuth } from "@/src/auth/useAuth";
+import { Asset } from "expo-asset";
+import { Image as ExpoImage } from "expo-image";
+import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -7,16 +11,15 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
-import { Image as ExpoImage } from "expo-image";
-import { Asset } from "expo-asset";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
-const background = require( "../../assets/images/background.jpeg");
 
 import { PetState, usePets } from "../../context/PetsContext";
 import { Category, getRandomDailyChallengeSet } from "../../data/dailyTasks";
+
+const background = require("../../assets/images/background.jpeg");
 
 const CATEGORY_EMOJI: Record<Category, string> = {
   Movement: "🏃",
@@ -61,7 +64,7 @@ function WalkingPet({
   useEffect(() => {
     const id = setInterval(
       () => setFrame((f) => (f + 1) % pet.walkingFrames.length),
-      FRAME_MS
+      FRAME_MS,
     );
     return () => clearInterval(id);
   }, [pet.walkingFrames.length]);
@@ -77,14 +80,8 @@ function WalkingPet({
 
       const targetX = Math.random() * maxX;
       const targetY = Math.random() * maxY;
-      const dist = Math.hypot(
-        targetX - xRef.current,
-        targetY - yRef.current
-      );
-      const duration = Math.max(
-        700,
-        (dist / WALK_SPEED_PX_PER_SEC) * 1000
-      );
+      const dist = Math.hypot(targetX - xRef.current, targetY - yRef.current);
+      const duration = Math.max(700, (dist / WALK_SPEED_PX_PER_SEC) * 1000);
 
       setFacingLeft(targetX < xRef.current);
 
@@ -147,6 +144,7 @@ function WalkingPet({
 }
 
 export default function HomeScreen() {
+  const { user } = useAuth();
   const [dailyChallenges] = useState(() => getRandomDailyChallengeSet());
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [secondsLeft, setSecondsLeft] = useState(secondsUntilMidnight);
@@ -165,6 +163,8 @@ export default function HomeScreen() {
     return () => clearInterval(t);
   }, []);
 
+  const headerButtonText =
+    user?.displayName || user?.email?.split("@")[0] || "Login";
   const formatTimer = (s: number) => {
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
@@ -193,7 +193,7 @@ export default function HomeScreen() {
   }, [unlockedPets.length]);
 
   const [playBounds, setPlayBounds] = useState<{ w: number; h: number } | null>(
-    null
+    null,
   );
 
   const onPlayAreaLayout = (e: LayoutChangeEvent) => {
@@ -218,6 +218,12 @@ export default function HomeScreen() {
           <View style={styles.streakPill}>
             <Text style={styles.streakText}>🔥 Streak: 12</Text>
           </View>
+          <Pressable
+            style={styles.loginPill}
+            onPress={() => router.push("/login")}
+          >
+            <Text style={styles.loginText}>{headerButtonText}</Text>
+          </Pressable>
         </View>
 
         <View style={styles.playArea} onLayout={onPlayAreaLayout}>
@@ -232,9 +238,7 @@ export default function HomeScreen() {
         <View style={styles.panel}>
           {/* Challenges Header */}
           <View style={styles.goalsHeader}>
-            <Text style={styles.goalsHeaderText}>
-              📅 Today's Challenges
-            </Text>
+            <Text style={styles.goalsHeaderText}>📅 Today's Challenges</Text>
             <Text style={styles.challengeCountdown}>
               {formatTimer(secondsLeft)}
             </Text>
@@ -338,6 +342,15 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: "hidden",
   },
+  loginPill: {
+    borderWidth: 1,
+    borderColor: "#C9C2B6",
+    backgroundColor: "#FBF7EF",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  loginText: { fontSize: 14, fontWeight: "700", color: "#1B1B1B" },
   walkingPet: {
     position: "absolute",
     width: PET_SIZE,
