@@ -11,11 +11,11 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        setLoading(false);
         await createUserDoc(firebaseUser);
       } else {
         setUser(null);
       }
+      setLoading(false);
     });
 
     return unsubscribe;
