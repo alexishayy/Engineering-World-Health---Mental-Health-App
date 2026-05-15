@@ -5,12 +5,11 @@ import {
   Animated,
   Easing,
   Image,
+  LayoutChangeEvent,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,8 +23,9 @@ type Reward = {
 
 const STORAGE_KEY_LAST_CLAIM = "pets_free_gift_last_claim_timestamp";
 const COOLDOWN_MS = 30000;
-const TOTAL_PETS = 3;
-const COMING_SOON_SLOTS = 6;
+const TOTAL_PETS = 5;
+const COMING_SOON_SLOTS = 1;
+const COLUMNS = 2;
 
 function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -133,15 +133,23 @@ export default function PetsScreen() {
     };
   }, []);
 
-  // grid sizing
-  const { width } = useWindowDimensions();
-  const COLUMNS = 3;
-  const GAP = 12;
-  const GRID_CARD_PADDING = 14;
-  const SCREEN_PADDING = 18;
-  const gridInnerWidth =
-    width - SCREEN_PADDING * 2 - GRID_CARD_PADDING * 2 - 2;
-  const tileSize = (gridInnerWidth - GAP * (COLUMNS - 1)) / COLUMNS;
+  // grid sizing — measured to fit available space (no scrolling)
+  const GAP = 8;
+  const ROWS = 3;
+  const [gridSize, setGridSize] = useState({ w: 0, h: 0 });
+  const onGridLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setGridSize((prev) =>
+      Math.abs(prev.w - width) < 1 && Math.abs(prev.h - height) < 1
+        ? prev
+        : { w: width, h: height }
+    );
+  };
+  const tileFromWidth =
+    gridSize.w > 0 ? (gridSize.w - GAP * (COLUMNS - 1)) / COLUMNS : 0;
+  const tileFromHeight =
+    gridSize.h > 0 ? (gridSize.h - GAP * (ROWS - 1)) / ROWS : 0;
+  const tileSize = Math.max(0, Math.min(tileFromWidth, tileFromHeight));
 
   function playModalOpenAnim() {
     modalScale.setValue(0.95);
@@ -368,10 +376,7 @@ export default function PetsScreen() {
         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.content}>
         {/* Summary card */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Pets Unlocked:</Text>
@@ -388,10 +393,9 @@ export default function PetsScreen() {
         </View>
 
         {/* Grid */}
-        <View style={styles.gridCard}>
-          <View style={styles.grid}>
-            {pets.map((p, idx) => {
-              const isRightEdge = (idx + 1) % COLUMNS === 0;
+        <View style={styles.gridWrap} onLayout={onGridLayout}>
+          <View style={[styles.grid, { gap: GAP }]}>
+            {pets.map((p) => {
               const pct = (p.collected / REQUIRED_EMOJIS) * 100;
               return (
                 <View
@@ -401,8 +405,6 @@ export default function PetsScreen() {
                     {
                       width: tileSize,
                       height: tileSize,
-                      marginRight: isRightEdge ? 0 : GAP,
-                      marginBottom: GAP,
                     },
                   ]}
                 >
@@ -442,8 +444,6 @@ export default function PetsScreen() {
             })}
 
             {Array.from({ length: COMING_SOON_SLOTS }, (_, i) => {
-              const gridIdx = TOTAL_PETS + i;
-              const isRightEdge = (gridIdx + 1) % COLUMNS === 0;
               return (
                 <View
                   key={`soon-${i}`}
@@ -453,8 +453,6 @@ export default function PetsScreen() {
                     {
                       width: tileSize,
                       height: tileSize,
-                      marginRight: isRightEdge ? 0 : GAP,
-                      marginBottom: GAP,
                     },
                   ]}
                 >
@@ -494,7 +492,7 @@ export default function PetsScreen() {
             </Text>
           </Pressable>
         </Animated.View>
-      </ScrollView>
+      </View>
 
       {/* Gift modal */}
       <Modal
@@ -617,9 +615,10 @@ const styles = StyleSheet.create({
   },
 
   content: {
+    flex: 1,
     paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 28,
+    paddingTop: 10,
+    paddingBottom: 14,
   },
 
   // Summary card
@@ -627,20 +626,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderWidth: 2,
     borderColor: "#b5e48c",
-    borderRadius: 18,
-    paddingVertical: 18,
-    paddingHorizontal: 18,
-    marginBottom: 18,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
   summaryTitle: {
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: "800",
     color: "#678067",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   progressTrack: {
-    height: 14,
-    borderRadius: 10,
+    height: 11,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: "#588157",
     backgroundColor: "#F7FAFD",
@@ -649,33 +648,32 @@ const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     backgroundColor: "#95df92",
-    borderRadius: 10,
+    borderRadius: 8,
   },
   progressMeta: {
-    marginTop: 10,
+    marginTop: 6,
     fontSize: 12,
     fontWeight: "700",
     color: "#9a9696",
   },
 
-  // Grid card
-  gridCard: {
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#b5e48c",
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 18,
+  // Grid wrap (no outer frame — each tile is its own card)
+  gridWrap: {
+    flex: 1,
+    marginBottom: 10,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    justifyContent: "center",
   },
 
   slot: {
-    borderRadius: 14,
+    borderRadius: 18,
     overflow: "hidden",
-    backgroundColor: "transparent",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#b5e48c",
   },
   slotImage: {
     width: "100%",
@@ -751,11 +749,11 @@ const styles = StyleSheet.create({
   // Gift button (matches Add Task style)
   giftButtonWrap: {
     position: "relative",
-    marginTop: 4,
+    marginTop: 0,
   },
   giftButtonShadow: {
     position: "absolute",
-    top: 6,
+    top: 5,
     left: 0,
     right: 0,
     height: "100%",
@@ -765,7 +763,7 @@ const styles = StyleSheet.create({
   giftButton: {
     backgroundColor: "#a3cef1",
     borderRadius: 16,
-    paddingVertical: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -777,7 +775,7 @@ const styles = StyleSheet.create({
   },
   giftButtonText: {
     color: "white",
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
   },
 

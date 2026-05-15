@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 
-export type PetId = "p1" | "p2" | "p3";
+export type PetId = "p1" | "p2" | "p3" | "p4" | "p5";
 
 export type PetState = {
   id: PetId;
@@ -44,6 +44,28 @@ const INITIAL_PETS: PetState[] = [
       require("../assets/pets/pet3walking2.png"),
     ],
     emoji: "🦴",
+    collected: 0,
+    unlocked: false,
+  },
+  {
+    id: "p4",
+    image: require("../assets/pets/pet4.png"),
+    walkingFrames: [
+      require("../assets/pets/pet4walking1.png"),
+      require("../assets/pets/pet4walking2.png"),
+    ],
+    emoji: "🐦",
+    collected: 0,
+    unlocked: false,
+  },
+  {
+    id: "p5",
+    image: require("../assets/pets/pet5.png"),
+    walkingFrames: [
+      require("../assets/pets/pet5walking1.png"),
+      require("../assets/pets/pet5walking2.png"),
+    ],
+    emoji: "🐰",
     collected: 0,
     unlocked: false,
   },
