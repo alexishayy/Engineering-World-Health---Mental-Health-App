@@ -216,7 +216,11 @@ export default function HomeScreen() {
         <View style={styles.topBar}>
           <ProfileAvatarButton size={32} />
           <View style={styles.streakPill}>
-            <Text style={styles.streakText}>🔥 Streak: 12</Text>
+            <Image
+              source={require("../../assets/images/streak.png")}
+              style={{ width: 22, height: 22 }}
+            />
+            <Text style={styles.streakText}> Streak: 12</Text>
           </View>
           <Pressable
             style={styles.loginPill}
@@ -331,6 +335,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   streakPill: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: "#C9C2B6",
     backgroundColor: "#FBF7EF",

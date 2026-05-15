@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -289,7 +290,11 @@ export default function FriendsScreen() {
               <View style={styles.friendAvatarWrap}>
                 <Avatar initial={f.initial} color={f.color} size={62} />
                 <View style={styles.streakPill}>
-                  <Text style={styles.streakPillText}>🔥 {f.streak}</Text>
+                  <Image
+                    source={require("../../assets/images/streak.png")}
+                    style={{ width: 14, height: 14 }}
+                  />
+                  <Text style={styles.streakPillText}> {f.streak}</Text>
                 </View>
               </View>
 
@@ -504,6 +509,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#FBF7EF",
     paddingHorizontal: 8,
     paddingVertical: 3,

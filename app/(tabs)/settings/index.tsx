@@ -39,7 +39,13 @@ export default function SettingsScreen() {
 
           <View style={styles.statsRow}>
             <View style={styles.statTile}>
-              <Text style={styles.statNumber}>🔥 {CURRENT_STREAK}</Text>
+              <View style={styles.statValueRow}>
+                <Image
+                  source={require("../../../assets/images/streak.png")}
+                  style={{ width: 20, height: 20, marginRight: 4 }}
+                />
+                <Text style={styles.statNumber}>{CURRENT_STREAK}</Text>
+              </View>
               <Text style={styles.statLabel}>Streak</Text>
             </View>
 
@@ -162,6 +168,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  statValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   statDivider: {
     width: 1,
