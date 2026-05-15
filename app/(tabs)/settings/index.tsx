@@ -138,8 +138,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   petImageWrap: {
-    width: 140,
-    height: 140,
+    width: 200,
+    height: 200,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
