@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
 
   topBar: {
     height: 64,
-    backgroundColor: "#a3cef1",
+    backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -624,8 +624,6 @@ const styles = StyleSheet.create({
   // Summary card
   summaryCard: {
     backgroundColor: "#ffffff",
-    borderWidth: 2,
-    borderColor: "#b5e48c",
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -672,8 +670,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: "hidden",
     backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#b5e48c",
   },
   slotImage: {
     width: "100%",

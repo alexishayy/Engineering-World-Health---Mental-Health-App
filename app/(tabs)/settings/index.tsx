@@ -113,16 +113,14 @@ const styles = StyleSheet.create({
 
   header: {
     height: 72,
-    backgroundColor: "#A3CEF1",
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#95bdde",
   },
   headerText: {
     fontSize: 22,
     fontWeight: "900",
-    color: "white",
+    color: "#1B1B1B",
     letterSpacing: -0.3,
   },
 
@@ -135,8 +133,6 @@ const styles = StyleSheet.create({
   petCard: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#b5e48c",
     paddingTop: 18,
     paddingBottom: 14,
     paddingHorizontal: 14,
@@ -195,8 +191,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#b5e48c",
     overflow: "hidden",
   },
   row: {
@@ -223,8 +217,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 999,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#f0c2c8",
   },
   logoutText: {
     color: "#de2c44",

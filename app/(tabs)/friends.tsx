@@ -11,7 +11,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 
 const STORAGE_KEY_ANNOUNCEMENTS_DATE = "friends_announcements_last_shown_date";
 
@@ -257,15 +256,6 @@ export default function FriendsScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
-      <View style={styles.topBar}>
-        <View>
-          <Text style={styles.topBarTitle}>Friends</Text>
-          <Text style={styles.topBarSubtitle}>Stay connected</Text>
-        </View>
-
-        <ProfileAvatarButton size={36} />
-      </View>
-
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -409,25 +399,23 @@ const styles = StyleSheet.create({
 
   topBar: {
     height: 72,
-    backgroundColor: "#a3cef1",
+    backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: "#95bdde",
   },
   topBarTitle: {
     fontSize: 25,
     fontWeight: "900",
-    color: "#ffffff",
+    color: "#1B1B1B",
     letterSpacing: -0.4,
   },
   topBarSubtitle: {
     marginTop: 1,
     fontSize: 13,
     fontWeight: "700",
-    color: "rgba(255,255,255,0.9)",
+    color: "#5f5f5f",
   },
 
   scrollContent: {
@@ -464,14 +452,13 @@ const styles = StyleSheet.create({
     width: 92,
     backgroundColor: "#ffffff",
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#b5e48c",
     paddingTop: 12,
     paddingBottom: 10,
     paddingHorizontal: 8,
     alignItems: "center",
   },
   addFriendChip: {
+    borderWidth: 1,
     borderStyle: "dashed",
     borderColor: "#95bdde",
     backgroundColor: "#f4f9fb",
@@ -597,8 +584,6 @@ const styles = StyleSheet.create({
   feedCard: {
     backgroundColor: "#ffffff",
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#b5e48c",
     padding: 14,
     marginBottom: 12,
   },
