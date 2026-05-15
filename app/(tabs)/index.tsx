@@ -238,7 +238,7 @@ export default function HomeScreen() {
         <View style={styles.panel}>
           {/* Challenges Header */}
           <View style={styles.goalsHeader}>
-            <Text style={styles.goalsHeaderText}>📅 Today's Challenges</Text>
+            <Text style={styles.goalsHeaderText}>📅 Today's Challenges - click each emoji to mark as complete!</Text>
             <Text style={styles.challengeCountdown}>
               {formatTimer(secondsLeft)}
             </Text>

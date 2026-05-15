@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -9,6 +11,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
+
+const STORAGE_KEY_ANNOUNCEMENTS_DATE = "friends_announcements_last_shown_date";
+
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 type Friend = {
   id: string;
@@ -90,21 +102,15 @@ const FEED: FeedItem[] = [
 ];
 
 const ANNOUNCEMENTS: Announcement[] = [
-  // A. Congratulations from friends
   { emoji: "👏", text: "Maya cheered you on!" },
   { emoji: "🎉", text: "Leo congratulated you on your streak!" },
   { emoji: "💌", text: "Ava sent you encouragement!" },
-  // B. Daily challenge reminder
   {
     emoji: "📅",
     text: `You have ${REMAINING_DAILY_CHALLENGES} challenge${
       REMAINING_DAILY_CHALLENGES === 1 ? "" : "s"
     } left today!`,
   },
-  // C. Mindfulness / well-being fun facts
-  { emoji: "🌿", text: "Taking 3 deep breaths can help lower stress." },
-  { emoji: "🚶", text: "A short walk can improve your mood." },
-  { emoji: "✨", text: "Writing down one good thing can build gratitude." },
 ];
 
 const ANNOUNCEMENT_INTERVAL_MS = 4000;
@@ -141,7 +147,11 @@ function Avatar({
 export default function FriendsScreen() {
   const [cheered, setCheered] = useState<Set<string>>(new Set());
   const [announceIdx, setAnnounceIdx] = useState(0);
+  const [announcementsVisible, setAnnouncementsVisible] = useState<
+    boolean | null
+  >(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const outlineAnim = useRef(new Animated.Value(0)).current;
 
   const toggleCheer = (id: string) => {
     setCheered((prev) => {
@@ -154,14 +164,40 @@ export default function FriendsScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    const id = setInterval(() => {
+    AsyncStorage.getItem(STORAGE_KEY_ANNOUNCEMENTS_DATE).then((val) => {
+      if (cancelled) return;
+      setAnnouncementsVisible(val !== todayKey());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!announcementsVisible) return;
+
+    let cancelled = false;
+    const isLast = announceIdx >= ANNOUNCEMENTS.length - 1;
+
+    const timeout = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: ANNOUNCEMENT_FADE_MS,
         useNativeDriver: true,
       }).start(({ finished }) => {
         if (cancelled || !finished) return;
-        setAnnounceIdx((i) => (i + 1) % ANNOUNCEMENTS.length);
+
+        if (isLast) {
+          AsyncStorage.setItem(
+            STORAGE_KEY_ANNOUNCEMENTS_DATE,
+            todayKey()
+          ).catch(() => {});
+          setAnnouncementsVisible(false);
+          return;
+        }
+
+        setAnnounceIdx((i) => i + 1);
+
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: ANNOUNCEMENT_FADE_MS,
@@ -172,29 +208,73 @@ export default function FriendsScreen() {
 
     return () => {
       cancelled = true;
-      clearInterval(id);
+      clearTimeout(timeout);
     };
-  }, [fadeAnim]);
+  }, [announceIdx, fadeAnim, announcementsVisible]);
+
+  useEffect(() => {
+    if (!announcementsVisible) return;
+    outlineAnim.setValue(0);
+
+    Animated.sequence([
+      Animated.timing(outlineAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(outlineAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(outlineAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(outlineAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(outlineAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(outlineAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) outlineAnim.setValue(0);
+    });
+  }, [announceIdx, outlineAnim, announcementsVisible]);
 
   const announcement = ANNOUNCEMENTS[announceIdx];
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
+      <View style={styles.topBar}>
+        <View>
+          <Text style={styles.topBarTitle}>Friends</Text>
+          <Text style={styles.topBarSubtitle}>Stay connected</Text>
+        </View>
+
+        <ProfileAvatarButton size={36} />
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[2]}
+        stickyHeaderIndices={announcementsVisible ? [2] : undefined}
       >
-        {/* 0: Header */}
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>Friends</Text>
-            <Text style={styles.subtitle}>See what your friends are up to</Text>
-          </View>
-          <ProfileAvatarButton size={42} />
+        <View style={styles.friendsSectionHeader}>
+          <Text style={styles.sectionTitle}>Friend streaks</Text>
+          <Text style={styles.sectionCaption}>Tap to view a friend</Text>
         </View>
 
-        {/* 1: Horizontal friends row */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -207,49 +287,86 @@ export default function FriendsScreen() {
               style={styles.friendChip}
             >
               <View style={styles.friendAvatarWrap}>
-                <Avatar initial={f.initial} color={f.color} size={64} />
+                <Avatar initial={f.initial} color={f.color} size={62} />
                 <View style={styles.streakPill}>
-                  <Text style={styles.streakPillText}>🔥{f.streak}</Text>
+                  <Text style={styles.streakPillText}>🔥 {f.streak}</Text>
                 </View>
               </View>
+
               <Text style={styles.friendName} numberOfLines={1}>
                 {f.name}
               </Text>
             </TouchableOpacity>
           ))}
+
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push("/add-friend")}
+            style={[styles.friendChip, styles.addFriendChip]}
+          >
+            <View style={styles.friendAvatarWrap}>
+              <View style={styles.addFriendAvatar}>
+                <Text style={styles.addFriendPlus}>+</Text>
+              </View>
+            </View>
+
+            <Text style={styles.friendName} numberOfLines={1}>
+              Add friend
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
 
-        {/* 2: Sticky announcement */}
-        <View style={styles.announcementWrap}>
-          <Animated.View
-            style={[styles.announcementCard, { opacity: fadeAnim }]}
-          >
-            <Text style={styles.announcementEmoji}>{announcement.emoji}</Text>
-            <Text style={styles.announcementText} numberOfLines={2}>
-              {announcement.text}
-            </Text>
-          </Animated.View>
+        {announcementsVisible && announcement ? (
+          <View style={styles.announcementWrap}>
+            <View style={styles.announcementCardWrap}>
+              <Animated.View
+                style={[styles.announcementCard, { opacity: fadeAnim }]}
+              >
+                <View style={styles.announcementIconBubble}>
+                  <Text style={styles.announcementEmoji}>
+                    {announcement.emoji}
+                  </Text>
+                </View>
+
+                <View style={styles.announcementTextWrap}>
+                  <Text style={styles.announcementLabel}>Announcement</Text>
+                  <Text style={styles.announcementText} numberOfLines={2}>
+                    {announcement.text}
+                  </Text>
+                </View>
+              </Animated.View>
+
+              <Animated.View
+                pointerEvents="none"
+                style={[styles.announcementOutline, { opacity: outlineAnim }]}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        <View style={styles.activityHeader}>
+          <Text style={styles.sectionTitle}>Recent activity</Text>
+          <Text style={styles.sectionCaption}>Send support with one tap</Text>
         </View>
 
-        {/* 3: Section label */}
-        <Text style={styles.sectionLabel}>Recent activity</Text>
-
-        {/* 4+: Feed cards */}
         {FEED.map((item) => {
           const isCheered = cheered.has(item.id);
+
           return (
             <View key={item.id} style={styles.feedCard}>
               <View style={styles.feedTop}>
                 <Avatar
                   initial={item.initial}
                   color={item.avatarColor}
-                  size={48}
+                  size={50}
                 />
+
                 <View style={styles.feedTextWrap}>
                   <Text style={styles.feedNameLine}>
                     <Text style={styles.feedName}>{item.name}</Text>
                     <Text style={styles.feedActivity}> {item.activity}</Text>
                   </Text>
+
                   <Text style={styles.feedTime}>{item.time}</Text>
                 </View>
               </View>
@@ -263,9 +380,12 @@ export default function FriendsScreen() {
                 ]}
               >
                 <Text
-                  style={[styles.cheerText, isCheered && styles.cheerTextActive]}
+                  style={[
+                    styles.cheerText,
+                    isCheered && styles.cheerTextActive,
+                  ]}
                 >
-                  {isCheered ? "👏 Cheered!" : "👏 Cheer"}
+                  {isCheered ? "Cheered!" : "Cheer"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -279,145 +399,201 @@ export default function FriendsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#FBF7EF",
-  },
-  scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 32,
+    backgroundColor: "#e7eff0",
   },
 
-  // Header
-  header: {
+  topBar: {
+    height: 72,
+    backgroundColor: "#a3cef1",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 6,
-    marginBottom: 18,
-    gap: 12,
+    paddingHorizontal: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: "#95bdde",
   },
-  headerText: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 30,
+  topBarTitle: {
+    fontSize: 25,
     fontWeight: "900",
-    color: "#1B1B1B",
-    letterSpacing: -0.5,
+    color: "#ffffff",
+    letterSpacing: -0.4,
   },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#777",
-    marginTop: 2,
-  },
-
-  // Horizontal friends row
-  friendsRow: {
-    paddingVertical: 4,
-    paddingRight: 8,
-    gap: 14,
-  },
-  friendChip: {
-    alignItems: "center",
-    width: 76,
-  },
-  friendAvatarWrap: {
-    width: 64,
-    height: 64,
-  },
-  friendName: {
-    marginTop: 10,
+  topBarSubtitle: {
+    marginTop: 1,
     fontSize: 13,
     fontWeight: "700",
+    color: "rgba(255,255,255,0.9)",
+  },
+
+  scrollContent: {
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 34,
+  },
+
+  friendsSectionHeader: {
+    marginBottom: 10,
+  },
+  activityHeader: {
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#678067",
+  },
+  sectionCaption: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#9a9696",
+  },
+
+  friendsRow: {
+    paddingBottom: 18,
+    paddingRight: 10,
+    gap: 12,
+  },
+  friendChip: {
+    width: 92,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#b5e48c",
+    paddingTop: 12,
+    paddingBottom: 10,
+    paddingHorizontal: 8,
+    alignItems: "center",
+  },
+  addFriendChip: {
+    borderStyle: "dashed",
+    borderColor: "#95bdde",
+    backgroundColor: "#f4f9fb",
+  },
+  addFriendAvatar: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "#a3cef1",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.85)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addFriendPlus: {
+    color: "#ffffff",
+    fontSize: 32,
+    fontWeight: "900",
+    marginTop: -2,
+  },
+  friendAvatarWrap: {
+    width: 68,
+    height: 72,
+    alignItems: "center",
+  },
+  friendName: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "900",
     color: "#1B1B1B",
-    maxWidth: 72,
+    maxWidth: 76,
     textAlign: "center",
   },
   streakPill: {
     position: "absolute",
-    bottom: -4,
-    right: -6,
-    backgroundColor: "#FFC800",
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    bottom: 0,
+    alignSelf: "center",
+    backgroundColor: "#FBF7EF",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 999,
-    borderWidth: 2,
-    borderColor: "#FBF7EF",
+    borderWidth: 1,
+    borderColor: "#C9C2B6",
   },
   streakPillText: {
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: "900",
     color: "#1B1B1B",
   },
 
-  // Avatar
   avatar: {
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.85)",
   },
   avatarInitial: {
     color: "white",
     fontWeight: "900",
   },
 
-  // Sticky announcement
   announcementWrap: {
-    // Negate the scrollContent horizontal padding so the sticky bg fills
-    // the full screen width and nothing scrolls visibly behind it.
     marginHorizontal: -18,
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 12,
-    backgroundColor: "#FBF7EF",
+    backgroundColor: "#e7eff0",
+  },
+  announcementCardWrap: {
+    position: "relative",
   },
   announcementCard: {
+    minHeight: 72,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#1CB0F6",
-    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#a3cef1",
     paddingVertical: 12,
     paddingHorizontal: 14,
-    shadowColor: "#0A6E9F",
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+  },
+  announcementOutline: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    borderWidth: 3,
+    borderColor: "#b5e48c",
+  },
+  announcementIconBubble: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#FBF7EF",
+    borderWidth: 1,
+    borderColor: "#C9C2B6",
+    alignItems: "center",
+    justifyContent: "center",
   },
   announcementEmoji: {
     fontSize: 22,
   },
-  announcementText: {
+  announcementTextWrap: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: "800",
-    color: "white",
-    lineHeight: 18,
   },
-
-  // Section label
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#9A9A9A",
+  announcementLabel: {
+    fontSize: 11,
+    fontWeight: "900",
+    color: "#95bdde",
     textTransform: "uppercase",
     letterSpacing: 0.6,
-    marginTop: 4,
-    marginBottom: 10,
+    marginBottom: 2,
+  },
+  announcementText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1B1B1B",
+    lineHeight: 19,
   },
 
-  // Feed cards
   feedCard: {
-    backgroundColor: "white",
+    backgroundColor: "#ffffff",
     borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#b5e48c",
     padding: 14,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   feedTop: {
     flexDirection: "row",
@@ -430,42 +606,43 @@ const styles = StyleSheet.create({
   feedNameLine: {
     fontSize: 14,
     color: "#1B1B1B",
-    lineHeight: 19,
+    lineHeight: 20,
   },
   feedName: {
-    fontWeight: "800",
+    fontWeight: "900",
     color: "#1B1B1B",
   },
   feedActivity: {
-    fontWeight: "500",
-    color: "#444",
+    fontWeight: "600",
+    color: "#5f5f5f",
   },
   feedTime: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#9A9A9A",
-    marginTop: 3,
+    fontWeight: "800",
+    color: "#9a9696",
+    marginTop: 4,
   },
+
   cheerButton: {
     alignSelf: "flex-start",
-    marginTop: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    marginTop: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 999,
-    borderWidth: 2,
-    borderColor: "#E5E5E5",
-    backgroundColor: "#FAFAFA",
+    borderWidth: 1,
+    borderColor: "#95bdde",
+    backgroundColor: "#a3cef1",
   },
   cheerButtonActive: {
-    borderColor: "#58CC02",
-    backgroundColor: "#EAF8DD",
+    borderColor: "#678067",
+    backgroundColor: "#b5e48c",
   },
   cheerText: {
     fontSize: 13,
-    fontWeight: "800",
-    color: "#1B1B1B",
+    fontWeight: "900",
+    color: "#ffffff",
   },
   cheerTextActive: {
-    color: "#3A8A02",
+    color: "#1B1B1B",
   },
 });
