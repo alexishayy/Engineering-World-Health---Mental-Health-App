@@ -1,5 +1,8 @@
+import { logOut } from "@/src/auth/emailAuth";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   StyleSheet,
@@ -97,9 +100,19 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <Pressable style={styles.logout}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </Pressable>
+        <Pressable
+  style={styles.logout}
+  onPress={async () => {
+    try {
+      await logOut();
+      router.replace("/login");
+    } catch (err: any) {
+      Alert.alert("Logout failed", err.message);
+    }
+  }}
+>
+  <Text style={styles.logoutText}>Logout</Text>
+</Pressable>
       </View>
     </SafeAreaView>
   );

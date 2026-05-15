@@ -224,8 +224,7 @@ export default function HomeScreen() {
           </View>
           <Pressable
             style={styles.loginPill}
-            onPress={() => router.push("/login")}
-          >
+            onPress={() => user ? router.push("/(tabs)/settings") : router.push("/login")}>
             <Text style={styles.loginText}>{headerButtonText}</Text>
           </Pressable>
         </View>
