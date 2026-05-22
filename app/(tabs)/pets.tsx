@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 import { usePets } from "../../context/PetsContext";
+import { useStreak } from "../../context/StreakContext";
 
 type Reward = {
   gains: { petId: string; emoji: string }[];
@@ -38,6 +39,7 @@ function formatSeconds(s: number) {
 
 export default function PetsScreen() {
   const { pets, setPets } = usePets();
+  const { streak } = useStreak();
 
   const unlockedCount = pets.filter((p) => p.unlocked).length;
   const progressPct = Math.round((unlockedCount / TOTAL_PETS) * 100);
@@ -371,7 +373,7 @@ export default function PetsScreen() {
             source={require("../../assets/images/streak.png")}
             style={{ width: 25, height: 25 }}
           />
-          <Text style={styles.streakText}> Streak : 12</Text>
+          <Text style={styles.streakText}> Streak : {streak}</Text>
         </View>
       </View>
 
