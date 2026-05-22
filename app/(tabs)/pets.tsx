@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
-import { REQUIRED_EMOJIS, usePets } from "../../context/PetsContext";
+import { usePets } from "../../context/PetsContext";
 
 type Reward = {
   gains: { petId: string; emoji: string }[];
@@ -22,7 +22,7 @@ type Reward = {
 };
 
 const STORAGE_KEY_LAST_CLAIM = "pets_free_gift_last_claim_timestamp";
-const COOLDOWN_MS = 30000;
+const COOLDOWN_MS = 5000;
 const TOTAL_PETS = 5;
 const COMING_SOON_SLOTS = 1;
 const COLUMNS = 2;
@@ -284,17 +284,16 @@ export default function PetsScreen() {
       return;
     }
 
-    // Roll for each locked pet: 50/50 chance to gain one emoji.
+    // Each gift grants exactly one emoji to a single random locked pet.
     const gains: { petId: string; emoji: string }[] = [];
     const unlockedPetIds: string[] = [];
 
-    for (const p of pets) {
-      if (p.unlocked) continue;
-      if (Math.random() < 0.5) {
-        gains.push({ petId: p.id, emoji: p.emoji });
-        if (p.collected + 1 >= REQUIRED_EMOJIS) {
-          unlockedPetIds.push(p.id);
-        }
+    const lockedPets = pets.filter((p) => !p.unlocked);
+    if (lockedPets.length > 0) {
+      const chosen = lockedPets[Math.floor(Math.random() * lockedPets.length)];
+      gains.push({ petId: chosen.id, emoji: chosen.emoji });
+      if (chosen.collected + 1 >= chosen.required) {
+        unlockedPetIds.push(chosen.id);
       }
     }
 
@@ -314,13 +313,13 @@ export default function PetsScreen() {
         ).length;
         if (gainedCount === 0) return p;
         const nextCollected = Math.min(
-          REQUIRED_EMOJIS,
+          p.required,
           p.collected + gainedCount
         );
         return {
           ...p,
           collected: nextCollected,
-          unlocked: p.unlocked || nextCollected >= REQUIRED_EMOJIS,
+          unlocked: p.unlocked || nextCollected >= p.required,
         };
       })
     );
@@ -396,7 +395,7 @@ export default function PetsScreen() {
         <View style={styles.gridWrap} onLayout={onGridLayout}>
           <View style={[styles.grid, { gap: GAP }]}>
             {pets.map((p) => {
-              const pct = (p.collected / REQUIRED_EMOJIS) * 100;
+              const pct = (p.collected / p.required) * 100;
               return (
                 <View
                   key={p.id}
@@ -434,7 +433,7 @@ export default function PetsScreen() {
                           />
                         </View>
                         <Text style={styles.slotProgressCount}>
-                          {p.collected}/{REQUIRED_EMOJIS}
+                          {p.collected}/{p.required}
                         </Text>
                       </View>
                     </>
@@ -730,8 +729,6 @@ const styles = StyleSheet.create({
 
   slotComingSoon: {
     backgroundColor: "#f8f5f1",
-    borderWidth: 1,
-    borderColor: "#a3cef1",
     alignItems: "center",
     justifyContent: "center",
   },

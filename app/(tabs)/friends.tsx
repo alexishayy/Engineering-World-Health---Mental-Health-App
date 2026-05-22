@@ -64,7 +64,7 @@ const FEED: FeedItem[] = [
     name: "Maya",
     initial: "M",
     avatarColor: "#FF9600",
-    activity: "completed a mindfulness challenge",
+    activity: "Cheered you today!",
     time: "2m ago",
   },
   {
@@ -72,7 +72,7 @@ const FEED: FeedItem[] = [
     name: "Leo",
     initial: "L",
     avatarColor: "#1CB0F6",
-    activity: "reached a 5-day streak",
+    activity: "Cheered you today!",
     time: "23m ago",
   },
   {
@@ -80,7 +80,7 @@ const FEED: FeedItem[] = [
     name: "Ava",
     initial: "A",
     avatarColor: "#CE82FF",
-    activity: "took care of their pet",
+    activity: "Cheered you today!",
     time: "1h ago",
   },
   {
@@ -88,7 +88,7 @@ const FEED: FeedItem[] = [
     name: "Noah",
     initial: "N",
     avatarColor: "#58CC02",
-    activity: "finished today's check-in",
+    activity: "Cheered you today!",
     time: "3h ago",
   },
   {
@@ -96,7 +96,7 @@ const FEED: FeedItem[] = [
     name: "Ivy",
     initial: "I",
     avatarColor: "#FF4B4B",
-    activity: "earned the Early Bird badge",
+    activity: "Cheered you today!",
     time: "Yesterday",
   },
 ];

@@ -8,10 +8,9 @@ export type PetState = {
   walkingFrames: [any, any];
   emoji: string;
   collected: number;
+  required: number;
   unlocked: boolean;
 };
-
-export const REQUIRED_EMOJIS = 5;
 
 const INITIAL_PETS: PetState[] = [
   {
@@ -22,7 +21,8 @@ const INITIAL_PETS: PetState[] = [
       require("../assets/pets/pet1walking2.png"),
     ],
     emoji: "🐾",
-    collected: REQUIRED_EMOJIS,
+    collected: 5,
+    required: 5,
     unlocked: true,
   },
   {
@@ -34,6 +34,7 @@ const INITIAL_PETS: PetState[] = [
     ],
     emoji: "🐟",
     collected: 0,
+    required: 5,
     unlocked: false,
   },
   {
@@ -45,6 +46,7 @@ const INITIAL_PETS: PetState[] = [
     ],
     emoji: "🦴",
     collected: 0,
+    required: 10,
     unlocked: false,
   },
   {
@@ -56,6 +58,7 @@ const INITIAL_PETS: PetState[] = [
     ],
     emoji: "🐦",
     collected: 0,
+    required: 20,
     unlocked: false,
   },
   {
@@ -67,6 +70,7 @@ const INITIAL_PETS: PetState[] = [
     ],
     emoji: "🐰",
     collected: 0,
+    required: 50,
     unlocked: false,
   },
 ];

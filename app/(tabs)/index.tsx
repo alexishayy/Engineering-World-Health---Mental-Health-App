@@ -33,6 +33,7 @@ const CATEGORY_EMOJI: Record<Category, string> = {
 const PET_SIZE = 88;
 const WALK_SPEED_PX_PER_SEC = 45;
 const FRAME_MS = 100;
+const TOP_PADDING_DP = (160 / 2.54) * 1; // about 1cm in dp units
 
 function secondsUntilMidnight() {
   const now = new Date();
@@ -50,9 +51,10 @@ function WalkingPet({
 }) {
   const maxX = Math.max(1, bounds.w - PET_SIZE);
   const maxY = Math.max(1, bounds.h - PET_SIZE);
+  const minY = Math.min(maxY, TOP_PADDING_DP);
 
   const xRef = useRef(Math.random() * maxX);
-  const yRef = useRef(Math.random() * maxY);
+  const yRef = useRef(Math.random() * (maxY - minY) + minY);
 
   const xAnim = useRef(new Animated.Value(xRef.current)).current;
   const yAnim = useRef(new Animated.Value(yRef.current)).current;
@@ -79,7 +81,7 @@ function WalkingPet({
       if (cancelled) return;
 
       const targetX = Math.random() * maxX;
-      const targetY = Math.random() * maxY;
+      const targetY = Math.random() * (maxY - minY) + minY;
       const dist = Math.hypot(targetX - xRef.current, targetY - yRef.current);
       const duration = Math.max(700, (dist / WALK_SPEED_PX_PER_SEC) * 1000);
 
@@ -224,7 +226,10 @@ export default function HomeScreen() {
           </View>
           <Pressable
             style={styles.loginPill}
-            onPress={() => user ? router.push("/(tabs)/settings") : router.push("/login")}>
+            onPress={() =>
+              user ? router.push("/(tabs)/settings") : router.push("/login")
+            }
+          >
             <Text style={styles.loginText}>{headerButtonText}</Text>
           </Pressable>
         </View>
@@ -242,7 +247,7 @@ export default function HomeScreen() {
           {/* Challenges Header */}
           <View style={styles.goalsHeader}>
             <Text style={styles.goalsHeaderText}>
-              📅 Today's Challenges{"\n"}       Click each emoji to mark as complete!
+              📅 Today's Challenges{"\n"} Click each emoji to mark as complete!
             </Text>
             <Text style={styles.challengeCountdown}>
               {formatTimer(secondsLeft)}
