@@ -11,28 +11,71 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../src/auth/useAuth";
+import {
+  findUserByIdentity,
+  FriendSummary,
+  sendFriendRequest,
+} from "../src/db/users";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isValidInput = (value: string) => value.trim().length > 0;
 
 export default function AddFriendScreen() {
+  const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const trimmed = email.trim();
-  const valid = EMAIL_RE.test(trimmed);
+  const valid = isValidInput(trimmed);
 
-  const onSend = () => {
-    if (!valid || submitting) return;
+  const onSend = async () => {
+    if (!valid || submitting || !user) return;
     setSubmitting(true);
-    Alert.alert("Invite sent", `We'll let ${trimmed} know you'd like to connect.`, [
-      {
-        text: "OK",
-        onPress: () => {
-          setSubmitting(false);
-          router.back();
-        },
-      },
-    ]);
+    console.log("Searching for user with identity:", trimmed);
+    try {
+      const target = await findUserByIdentity(trimmed);
+      console.log("Found user:", target?.data);
+      if (!target) {
+        Alert.alert(
+          "No user found",
+          "No account matches that email or username.",
+        );
+        return;
+      }
+
+      if (target.id === user.uid) {
+        Alert.alert(
+          "Can't add yourself",
+          "Enter someone else's email or username.",
+        );
+        return;
+      }
+
+      const currentUser: FriendSummary = {
+        id: user.uid,
+        name: user.displayName || user.email?.split("@")[0] || "Friend",
+        email: user.email?.toLowerCase() || "",
+      };
+
+      await sendFriendRequest(currentUser, target.id);
+      Alert.alert(
+        "Request sent",
+        `We'll let ${target.data.name || target.data.email} know you'd like to connect.`,
+        [
+          {
+            text: "OK",
+            onPress: () => router.back(),
+          },
+        ],
+      );
+    } catch (error: any) {
+      Alert.alert(
+        "Unable to send request",
+        error?.message || "Something went wrong. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -54,10 +97,10 @@ export default function AddFriendScreen() {
         style={styles.flex}
       >
         <View style={styles.container}>
-          <Text style={styles.title}>Invite by email</Text>
+          <Text style={styles.title}>Invite by email or username</Text>
           <Text style={styles.subtitle}>
-            Enter your friend&apos;s email and we&apos;ll send them an invite to
-            connect.
+            Enter your friend&apos;s email or exact username and we&apos;ll send
+            them an invite to connect.
           </Text>
 
           <View style={styles.inputWrap}>
@@ -65,7 +108,7 @@ export default function AddFriendScreen() {
             <TextInput
               value={email}
               onChangeText={setEmail}
-              placeholder="friend@example.com"
+              placeholder="friend@example.com or username"
               placeholderTextColor="#a9b3b4"
               autoCapitalize="none"
               autoCorrect={false}
