@@ -1,4 +1,5 @@
 import { useAuth } from "@/src/auth/useAuth";
+import { feedback } from "@/src/effects/feedback";
 import { Asset } from "expo-asset";
 import { Image as ExpoImage } from "expo-image";
 import { router } from "expo-router";
@@ -14,10 +15,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CelebrationOverlay from "../../components/CelebrationOverlay";
 import ProfileAvatarButton from "../../components/ProfileAvatarButton";
 
 import { PetState, usePets } from "../../context/PetsContext";
-import { Category, getRandomDailyChallengeSet } from "../../data/dailyTasks";
+import { useStreak } from "../../context/StreakContext";
+import { Category } from "../../data/dailyTasks";
 
 const background = require("../../assets/images/background.jpeg");
 
@@ -147,23 +150,64 @@ function WalkingPet({
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const [dailyChallenges] = useState(() => getRandomDailyChallengeSet());
-  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const {
+    streak,
+    dailyTasks: dailyChallenges,
+    completedIds,
+    locked,
+    celebrationToken,
+    toggleComplete,
+  } = useStreak();
   const [secondsLeft, setSecondsLeft] = useState(secondsUntilMidnight);
-
-  const toggleComplete = (id: string) => {
-    setCompletedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const [celebrating, setCelebrating] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setSecondsLeft(secondsUntilMidnight()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Fire celebration haptics + visual when the user completes all 3 today.
+  useEffect(() => {
+    if (celebrationToken === 0) return;
+    feedback("celebration");
+    setCelebrating(true);
+  }, [celebrationToken]);
+
+  // One-shot warning haptics as the day winds down. Tracks today's date so we
+  // re-arm at midnight when secondsLeft jumps back to ~86400.
+  const warningStateRef = useRef<{
+    day: string;
+    firedHour: boolean;
+    fired10: boolean;
+  }>({ day: "", firedHour: false, fired10: false });
+
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const ws = warningStateRef.current;
+    if (ws.day !== today) {
+      ws.day = today;
+      ws.firedHour = false;
+      ws.fired10 = false;
+    }
+    // Trigger when crossing into each window (and only if there's still
+    // unfinished work — no point alarming after they've already locked in).
+    if (!locked) {
+      if (!ws.firedHour && secondsLeft <= 3600 && secondsLeft > 595) {
+        ws.firedHour = true;
+        feedback("warning");
+      }
+      if (!ws.fired10 && secondsLeft <= 600 && secondsLeft > 0) {
+        ws.fired10 = true;
+        feedback("warning");
+      }
+    }
+  }, [secondsLeft, locked]);
+
+  const handleTogglePress = (id: string) => {
+    if (locked) return;
+    feedback("tap");
+    toggleComplete(id);
+  };
 
   const headerButtonText =
     user?.displayName || user?.email?.split("@")[0] || "Login";
@@ -222,7 +266,7 @@ export default function HomeScreen() {
               source={require("../../assets/images/streak.png")}
               style={{ width: 22, height: 22 }}
             />
-            <Text style={styles.streakText}> Streak: 12</Text>
+            <Text style={styles.streakText}> Streak: {streak}</Text>
           </View>
           <Pressable
             style={styles.loginPill}
@@ -264,9 +308,11 @@ export default function HomeScreen() {
                   style={[styles.goalCard, done && styles.goalCardDone]}
                 >
                   <Pressable
-                    onPress={() => toggleComplete(task.id)}
+                    onPress={() => handleTogglePress(task.id)}
+                    disabled={locked}
                     hitSlop={8}
                     accessibilityRole="button"
+                    accessibilityState={{ disabled: locked, checked: done }}
                     accessibilityLabel={`Mark "${task.title}" as ${
                       done ? "incomplete" : "complete"
                     }`}
@@ -298,6 +344,11 @@ export default function HomeScreen() {
           </View>
         </View>
       </SafeAreaView>
+
+      <CelebrationOverlay
+        visible={celebrating}
+        onDone={() => setCelebrating(false)}
+      />
     </View>
   );
 }

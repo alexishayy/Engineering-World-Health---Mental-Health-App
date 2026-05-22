@@ -1,6 +1,7 @@
 import { logOut } from "@/src/auth/emailAuth";
+import { feedback } from "@/src/effects/feedback";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   Alert,
   Image,
@@ -12,17 +13,37 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePets } from "../../../context/PetsContext";
+import { useSettings } from "../../../context/SettingsContext";
+import { useStreak } from "../../../context/StreakContext";
 
-const CURRENT_STREAK = 12;
 const FRIENDS_COUNT = 6;
 
 export default function SettingsScreen() {
   const { pets } = usePets();
+  const { streak } = useStreak();
+  const {
+    soundEffects,
+    hapticFeedback,
+    notifications,
+    setSoundEffects,
+    setHapticFeedback,
+    setNotifications,
+  } = useSettings();
   const unlockedPets = pets.filter((p) => p.unlocked).length;
 
-  const [soundEffects, setSoundEffects] = useState(true);
-  const [hapticFeedback, setHapticFeedback] = useState(true);
-  const [notifications, setNotifications] = useState(true);
+  const onToggleSound = (v: boolean) => {
+    setSoundEffects(v);
+    feedback("toggle");
+  };
+  const onToggleHaptics = (v: boolean) => {
+    // Set first so the haptic respects the new value when turning ON.
+    setHapticFeedback(v);
+    feedback("toggle");
+  };
+  const onToggleNotifications = (v: boolean) => {
+    setNotifications(v);
+    feedback("toggle");
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -47,7 +68,7 @@ export default function SettingsScreen() {
                   source={require("../../../assets/images/streak.png")}
                   style={{ width: 20, height: 20, marginRight: 4 }}
                 />
-                <Text style={styles.statNumber}>{CURRENT_STREAK}</Text>
+                <Text style={styles.statNumber}>{streak}</Text>
               </View>
               <Text style={styles.statLabel}>Streak</Text>
             </View>
@@ -73,7 +94,7 @@ export default function SettingsScreen() {
             <Text style={styles.label}>Sound effects</Text>
             <Switch
               value={soundEffects}
-              onValueChange={setSoundEffects}
+              onValueChange={onToggleSound}
               trackColor={{ false: "#cfd6d7", true: "#A3CEF1" }}
               thumbColor="white"
             />
@@ -83,7 +104,7 @@ export default function SettingsScreen() {
             <Text style={styles.label}>Haptic feedback</Text>
             <Switch
               value={hapticFeedback}
-              onValueChange={setHapticFeedback}
+              onValueChange={onToggleHaptics}
               trackColor={{ false: "#cfd6d7", true: "#A3CEF1" }}
               thumbColor="white"
             />
@@ -93,7 +114,7 @@ export default function SettingsScreen() {
             <Text style={styles.label}>Notifications</Text>
             <Switch
               value={notifications}
-              onValueChange={setNotifications}
+              onValueChange={onToggleNotifications}
               trackColor={{ false: "#cfd6d7", true: "#A3CEF1" }}
               thumbColor="white"
             />
