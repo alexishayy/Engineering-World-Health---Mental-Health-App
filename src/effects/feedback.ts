@@ -1,3 +1,4 @@
+import type { AudioPlayer } from "expo-audio";
 import * as Haptics from "expo-haptics";
 import { settingsState } from "../../context/SettingsContext";
 
@@ -16,14 +17,33 @@ function soundOn(): boolean {
   return settingsState.soundEffects;
 }
 
-// Sound playback is stubbed until expo-audio (or expo-av) is added. Each entry
-// below is the intended sound — wire them up by replacing this no-op with a
-// real player. Keep the soundOn() gate so the settings toggle still controls it.
-function playSound(_name: string) {
+let celebrationPlayer: AudioPlayer | null = null;
+let celebrationLoadTried = false;
+function getCelebrationPlayer(): AudioPlayer | null {
+  if (celebrationLoadTried) return celebrationPlayer;
+  celebrationLoadTried = true;
+  try {
+    // Lazy require so the app still boots in environments where the native
+    // expo-audio module isn't linked (e.g. Expo Go). Sound is skipped there.
+    const { createAudioPlayer } = require("expo-audio");
+    celebrationPlayer = createAudioPlayer(
+      require("../../assets/sounds/celebration.mp3"),
+    );
+  } catch {
+    celebrationPlayer = null;
+  }
+  return celebrationPlayer;
+}
+
+function playSound(name: string) {
   if (!soundOn()) return;
-  // TODO: install expo-audio and load short clips, e.g.
-  //   const player = useAudioPlayer(require('../../assets/sounds/<name>.mp3'));
-  //   player.play();
+  if (name !== "celebration") return;
+  const player = getCelebrationPlayer();
+  if (!player) return;
+  try {
+    player.seekTo(0);
+    player.play();
+  } catch {}
 }
 
 export function feedback(kind: FeedbackKind) {
