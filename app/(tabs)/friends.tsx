@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Image,
   ScrollView,
@@ -11,6 +12,18 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../src/auth/useAuth";
+import { db } from "../../src/firebase/firebaseConfig";
+import {
+  FriendSummary,
+  UserDocument,
+  acceptFriendRequest,
+  declineFriendRequest,
+  sendCheerToFriend,
+  removeFriend,
+  getTimeAgo,
+} from "../../src/db/users";
+import { doc, onSnapshot } from "firebase/firestore";
 
 const STORAGE_KEY_ANNOUNCEMENTS_DATE = "friends_announcements_last_shown_date";
 
@@ -22,22 +35,7 @@ function todayKey() {
   return `${y}-${m}-${day}`;
 }
 
-type Friend = {
-  id: string;
-  name: string;
-  initial: string;
-  color: string;
-  streak: number;
-};
-
-type FeedItem = {
-  id: string;
-  name: string;
-  initial: string;
-  avatarColor: string;
-  activity: string;
-  time: string;
-};
+// Using Firestore's `FriendSummary` type for friends from the server.
 
 type Announcement = {
   emoji: string;
@@ -49,57 +47,8 @@ const COMPLETED_DAILY_CHALLENGES = 1;
 const REMAINING_DAILY_CHALLENGES =
   TOTAL_DAILY_CHALLENGES - COMPLETED_DAILY_CHALLENGES;
 
-const FRIENDS: Friend[] = [
-  { id: "1", name: "Maya", initial: "M", color: "#FF9600", streak: 12 },
-  { id: "2", name: "Leo", initial: "L", color: "#1CB0F6", streak: 5 },
-  { id: "3", name: "Ava", initial: "A", color: "#CE82FF", streak: 27 },
-  { id: "4", name: "Noah", initial: "N", color: "#58CC02", streak: 3 },
-  { id: "5", name: "Ivy", initial: "I", color: "#FF4B4B", streak: 14 },
-  { id: "6", name: "Theo", initial: "T", color: "#FFC800", streak: 9 },
-];
+// Placeholder friend list removed — only real friends from Firestore are shown.
 
-const FEED: FeedItem[] = [
-  {
-    id: "f1",
-    name: "Maya",
-    initial: "M",
-    avatarColor: "#FF9600",
-    activity: "Cheered you today!",
-    time: "2m ago",
-  },
-  {
-    id: "f2",
-    name: "Leo",
-    initial: "L",
-    avatarColor: "#1CB0F6",
-    activity: "Cheered you today!",
-    time: "23m ago",
-  },
-  {
-    id: "f3",
-    name: "Ava",
-    initial: "A",
-    avatarColor: "#CE82FF",
-    activity: "Cheered you today!",
-    time: "1h ago",
-  },
-  {
-    id: "f4",
-    name: "Noah",
-    initial: "N",
-    avatarColor: "#58CC02",
-    activity: "Cheered you today!",
-    time: "3h ago",
-  },
-  {
-    id: "f5",
-    name: "Ivy",
-    initial: "I",
-    avatarColor: "#FF4B4B",
-    activity: "Cheered you today!",
-    time: "Yesterday",
-  },
-];
 
 const ANNOUNCEMENTS: Announcement[] = [
   { emoji: "👏", text: "Maya cheered you on!" },
@@ -144,22 +93,171 @@ function Avatar({
   );
 }
 
+function getAvatarInitial(name: string) {
+  return name?.trim()?.[0]?.toUpperCase() ?? "?";
+}
+
+function getAvatarColor(name: string) {
+  const colors = [
+    "#FF9600",
+    "#1CB0F6",
+    "#CE82FF",
+    "#58CC02",
+    "#FF4B4B",
+    "#FFC800",
+  ];
+  return colors[(name?.trim()?.charCodeAt(0) ?? 65) % colors.length];
+}
+
 export default function FriendsScreen() {
-  const [cheered, setCheered] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
   const [announceIdx, setAnnounceIdx] = useState(0);
   const [announcementsVisible, setAnnouncementsVisible] = useState<
     boolean | null
   >(null);
+  const [userDoc, setUserDoc] = useState<UserDocument | null>(null);
+  const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set());
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const outlineAnim = useRef(new Animated.Value(0)).current;
 
-  const toggleCheer = (id: string) => {
-    setCheered((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
+  useEffect(() => {
+    if (!user) {
+      setUserDoc(null);
+      return;
+    }
+
+    const userRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setUserDoc(snapshot.data() as UserDocument);
+      } else {
+        setUserDoc(null);
+      }
     });
+
+    return unsubscribe;
+  }, [user]);
+
+  const incomingRequests = userDoc?.incomingFriendRequests ?? [];
+  // Deduplicate friends by id to avoid duplicate cards if DB contains duplicates
+  const friendCards: FriendSummary[] = Array.from(
+    new Map((userDoc?.friends ?? []).map((f) => [f.id, f])).values()
+  );
+  const hasRealFriends = friendCards.length > 0;
+  const recentCheers = userDoc?.recentCheers ?? [];
+
+  const sortedCheers = [...recentCheers]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 5);
+
+  const handleAccept = async (request: FriendSummary) => {
+    if (!user || !userDoc) return;
+
+    setProcessingRequests((prev) => new Set(prev).add(request.id));
+    try {
+      await acceptFriendRequest(
+        {
+          id: user.uid,
+          name: userDoc.name,
+          email: userDoc.email,
+        },
+        request
+      );
+    } catch (error: any) {
+      Alert.alert(
+        "Could not accept request",
+        error?.message || "Please try again."
+      );
+    } finally {
+      setProcessingRequests((prev) => {
+        const next = new Set(prev);
+        next.delete(request.id);
+        return next;
+      });
+    }
+  };
+
+  const handleDecline = async (request: FriendSummary) => {
+    if (!user) return;
+
+    setProcessingRequests((prev) => new Set(prev).add(request.id));
+    try {
+      await declineFriendRequest(user.uid, request);
+    } catch (error: any) {
+      Alert.alert(
+        "Could not decline request",
+        error?.message || "Please try again."
+      );
+    } finally {
+      setProcessingRequests((prev) => {
+        const next = new Set(prev);
+        next.delete(request.id);
+        return next;
+      });
+    }
+  };
+
+  const handleSendCheer = async (friend: FriendSummary) => {
+    if (!user || !userDoc) return;
+
+    try {
+      await sendCheerToFriend(user.uid, userDoc.name, friend.id);
+      Alert.alert("Cheer sent", `You cheered ${friend.name}!`);
+    } catch (error: any) {
+      Alert.alert(
+        "Could not send cheer",
+        error?.message || "Please try again."
+      );
+    }
+  };
+
+  const handleRemoveFriend = async (friend: FriendSummary) => {
+    if (!user || !userDoc) return;
+
+    Alert.alert(
+      "Remove friend",
+      `Are you sure you want to remove ${friend.name}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeFriend(
+                {
+                  id: user.uid,
+                  name: userDoc.name,
+                  email: userDoc.email,
+                },
+                friend
+              );
+              Alert.alert("Removed", `${friend.name} was removed.`);
+            } catch (error: any) {
+              Alert.alert(
+                "Could not remove friend",
+                error?.message || "Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const showFriendActions = (friend: FriendSummary) => {
+    Alert.alert(friend.name, "What would you like to do?", [
+      {
+        text: "Send a cheer",
+        onPress: () => handleSendCheer(friend),
+      },
+      {
+        text: "Remove friend",
+        style: "destructive",
+        onPress: () => handleRemoveFriend(friend),
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   useEffect(() => {
@@ -262,37 +360,84 @@ export default function FriendsScreen() {
         stickyHeaderIndices={announcementsVisible ? [2] : undefined}
       >
         <View style={styles.friendsSectionHeader}>
-          <Text style={styles.sectionTitle}>Friend streaks</Text>
+          <Text style={styles.sectionTitle}>Friends</Text>
           <Text style={styles.sectionCaption}>Tap to view a friend</Text>
         </View>
+
+        {incomingRequests.length > 0 ? (
+          <View style={styles.requestsSection}>
+            <Text style={styles.sectionTitle}>Friend requests</Text>
+            <Text style={styles.sectionCaption}>
+              Accept or decline requests from people who want to connect.
+            </Text>
+            {incomingRequests.map((request) => (
+              <View key={request.id} style={styles.requestCard}>
+                <View style={styles.requestTextWrap}>
+                  <Text style={styles.requestName}>{request.name}</Text>
+                  <Text style={styles.requestEmail}>{request.email}</Text>
+                </View>
+                <View style={styles.requestActions}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    disabled={processingRequests.has(request.id)}
+                    onPress={() => handleAccept(request)}
+                    style={[styles.requestActionButton, styles.requestAccept]}
+                  >
+                    <Text style={styles.requestActionText}>✓</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    disabled={processingRequests.has(request.id)}
+                    onPress={() => handleDecline(request)}
+                    style={[styles.requestActionButton, styles.requestDecline]}
+                  >
+                    <Text style={styles.requestActionText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.friendsRow}
         >
-          {FRIENDS.map((f) => (
-            <TouchableOpacity
-              key={f.id}
-              activeOpacity={0.85}
-              style={styles.friendChip}
-            >
-              <View style={styles.friendAvatarWrap}>
-                <Avatar initial={f.initial} color={f.color} size={62} />
-                <View style={styles.streakPill}>
-                  <Image
-                    source={require("../../assets/images/streak.png")}
-                    style={{ width: 14, height: 14 }}
-                  />
-                  <Text style={styles.streakPillText}> {f.streak}</Text>
-                </View>
-              </View>
+          {friendCards.map((friend: FriendSummary) => {
+            const initial = getAvatarInitial(friend.name as string);
+            const color = (friend as any).color
+              ? (friend as any).color
+              : getAvatarColor(friend.name as string);
+            const streak = (friend as any).streak as number | undefined;
 
-              <Text style={styles.friendName} numberOfLines={1}>
-                {f.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+            return (
+              <TouchableOpacity
+                key={friend.id}
+                activeOpacity={0.85}
+                onPress={hasRealFriends ? () => showFriendActions(friend as FriendSummary) : undefined}
+                disabled={!hasRealFriends}
+                style={styles.friendChip}
+              >
+                <View style={styles.friendAvatarWrap}>
+                  <Avatar initial={initial} color={color} size={62} />
+                  {typeof streak === "number" ? (
+                    <View style={styles.streakPill}>
+                      <Image
+                        source={require("../../assets/images/streak.png")}
+                        style={{ width: 14, height: 14 }}
+                      />
+                      <Text style={styles.streakPillText}> {streak}</Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                <Text style={styles.friendName} numberOfLines={1}>
+                  {friend.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
 
           <TouchableOpacity
             activeOpacity={0.85}
@@ -340,52 +485,50 @@ export default function FriendsScreen() {
         ) : null}
 
         <View style={styles.activityHeader}>
-          <Text style={styles.sectionTitle}>Recent activity</Text>
-          <Text style={styles.sectionCaption}>Send support with one tap</Text>
+          <View style={styles.activityHeaderRow}>
+            <View>
+              <Text style={styles.sectionTitle}>Recent activity</Text>
+              <Text style={styles.sectionCaption}>
+                {sortedCheers.length > 0
+                  ? "Friends who cheered you"
+                  : "No cheers yet"}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {FEED.map((item) => {
-          const isCheered = cheered.has(item.id);
+        {sortedCheers.length > 0 ? (
+          sortedCheers.map((cheer) => {
+            const initial = getAvatarInitial(cheer.cheererName);
+            const color = getAvatarColor(cheer.cheererName);
 
-          return (
-            <View key={item.id} style={styles.feedCard}>
-              <View style={styles.feedTop}>
-                <Avatar
-                  initial={item.initial}
-                  color={item.avatarColor}
-                  size={50}
-                />
+            return (
+              <View
+                key={`${cheer.cheererId}-${cheer.timestamp}`}
+                style={styles.feedCard}
+              >
+                <View style={styles.feedTop}>
+                  <Avatar initial={initial} color={color} size={50} />
 
-                <View style={styles.feedTextWrap}>
-                  <Text style={styles.feedNameLine}>
-                    <Text style={styles.feedName}>{item.name}</Text>
-                    <Text style={styles.feedActivity}> {item.activity}</Text>
-                  </Text>
+                  <View style={styles.feedTextWrap}>
+                    <Text style={styles.feedNameLine}>
+                      <Text style={styles.feedName}>{cheer.cheererName}</Text>
+                      <Text style={styles.feedActivity}> Cheered you!</Text>
+                    </Text>
 
-                  <Text style={styles.feedTime}>{item.time}</Text>
+                    <Text style={styles.feedTime}>
+                      {getTimeAgo(cheer.timestamp)}
+                    </Text>
+                  </View>
                 </View>
               </View>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => toggleCheer(item.id)}
-                style={[
-                  styles.cheerButton,
-                  isCheered && styles.cheerButtonActive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.cheerText,
-                    isCheered && styles.cheerTextActive,
-                  ]}
-                >
-                  {isCheered ? "Cheered!" : "Cheer"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          );
-        })}
+            );
+          })
+          ) : (
+          <Text style={styles.emptyActivityText}>
+            No cheers yet. Your friends can cheer you from their profiles.
+          </Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -522,6 +665,59 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
 
+  requestsSection: {
+    marginBottom: 16,
+    padding: 16,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#d2dde0",
+  },
+  requestCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef3f4",
+  },
+  requestTextWrap: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  requestName: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#1B1B1B",
+  },
+  requestEmail: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#6b6b6b",
+  },
+  requestActions: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  requestActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  requestAccept: {
+    backgroundColor: "#58CC02",
+  },
+  requestDecline: {
+    backgroundColor: "#FF4B4B",
+  },
+  requestActionText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
   announcementWrap: {
     marginHorizontal: -18,
     paddingHorizontal: 18,
@@ -636,5 +832,22 @@ const styles = StyleSheet.create({
   },
   cheerTextActive: {
     color: "#1B1B1B",
+  },
+
+  activityHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
+  emptyActivityText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#888888",
+    textAlign: "center",
+    marginVertical: 20,
+    marginHorizontal: 20,
+    lineHeight: 20,
   },
 });
