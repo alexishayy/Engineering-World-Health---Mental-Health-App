@@ -2,7 +2,6 @@ import { logIn, signUp } from "@/src/auth/emailAuth";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -17,13 +16,14 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
+  const [error, setError] = useState("");
 
   async function handleLogin() {
     try {
       await logIn(email, password);
       router.replace("/");
     } catch (err: any) {
-      Alert.alert("Login failed", err.message);
+      setError("Incorrect email or password. Please try again.")
     }
   }
 
@@ -32,7 +32,7 @@ export default function LoginScreen() {
       await signUp(email, password);
       router.replace("/");
     } catch (err: any) {
-      Alert.alert("Signup failed", err.message);
+      setError(err.message);
     }
   }
 
@@ -60,7 +60,7 @@ export default function LoginScreen() {
         <View style={styles.tabRow}>
           <Pressable
             style={[styles.tab, mode === "login" && styles.tabActive]}
-            onPress={() => setMode("login")}
+            onPress={() => {setMode("login"); setError("");}}
           >
             <Text style={[styles.tabText, mode === "login" && styles.tabTextActive]}>
               Log In
@@ -68,7 +68,7 @@ export default function LoginScreen() {
           </Pressable>
           <Pressable
             style={[styles.tab, mode === "signup" && styles.tabActive]}
-            onPress={() => setMode("signup")}
+            onPress={() => {setMode("signup"); setError("");}}
           >
             <Text style={[styles.tabText, mode === "signup" && styles.tabTextActive]}>
               Sign Up
@@ -111,6 +111,13 @@ export default function LoginScreen() {
             {mode === "login" ? "Log In →" : "Create Account →"}
           </Text>
         </Pressable>
+
+        {/* Error message */}
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
         {/* Divider */}
         <View style={styles.divider}>
@@ -252,6 +259,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.5,
+  },
+  errorBox: {
+    backgroundColor: "#fff0f0",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#ffcccc",
+  },
+  errorText: {
+    color: "#cc4444",
+    fontSize: 13,
+    textAlign: "center",
+    fontWeight: "500",
   },
   divider: {
     flexDirection: "row",
