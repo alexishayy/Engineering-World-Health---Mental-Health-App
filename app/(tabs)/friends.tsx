@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -24,6 +24,7 @@ import {
   getTimeAgo,
 } from "../../src/db/users";
 import { doc, onSnapshot } from "firebase/firestore";
+import { useStreak } from "../../context/StreakContext";
 
 const STORAGE_KEY_ANNOUNCEMENTS_DATE = "friends_announcements_last_shown_date";
 
@@ -46,21 +47,6 @@ const TOTAL_DAILY_CHALLENGES = 3;
 const COMPLETED_DAILY_CHALLENGES = 1;
 const REMAINING_DAILY_CHALLENGES =
   TOTAL_DAILY_CHALLENGES - COMPLETED_DAILY_CHALLENGES;
-
-// Placeholder friend list removed — only real friends from Firestore are shown.
-
-
-const ANNOUNCEMENTS: Announcement[] = [
-  { emoji: "👏", text: "Maya cheered you on!" },
-  { emoji: "🎉", text: "Leo congratulated you on your streak!" },
-  { emoji: "💌", text: "Ava sent you encouragement!" },
-  {
-    emoji: "📅",
-    text: `You have ${REMAINING_DAILY_CHALLENGES} challenge${
-      REMAINING_DAILY_CHALLENGES === 1 ? "" : "s"
-    } left today!`,
-  },
-];
 
 const ANNOUNCEMENT_INTERVAL_MS = 4000;
 const ANNOUNCEMENT_FADE_MS = 350;
@@ -138,7 +124,11 @@ export default function FriendsScreen() {
     return unsubscribe;
   }, [user]);
 
-  const incomingRequests = userDoc?.incomingFriendRequests ?? [];
+  const { streak } = useStreak();
+  const incomingRequests = useMemo(
+    () => userDoc?.incomingFriendRequests ?? [],
+    [userDoc?.incomingFriendRequests]
+  );
   // Deduplicate friends by id to avoid duplicate cards if DB contains duplicates
   const friendCards: FriendSummary[] = Array.from(
     new Map((userDoc?.friends ?? []).map((f) => [f.id, f])).values()
@@ -149,6 +139,60 @@ export default function FriendsScreen() {
   const sortedCheers = [...recentCheers]
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 5);
+
+  const announcementItems = useMemo(() => {
+    const items: Announcement[] = [];
+
+    const uniqueCheerers = Array.from(
+      new Map(sortedCheers.map((cheer) => [cheer.cheererId, cheer.cheererName])).values()
+    );
+
+    if (uniqueCheerers.length > 0) {
+      if (uniqueCheerers.length === 1) {
+        items.push({
+          emoji: "👏",
+          text: `${uniqueCheerers[0]} cheered you on!`,
+        });
+      } else {
+        const otherCount = uniqueCheerers.length - 1;
+        items.push({
+          emoji: "👏",
+          text: `${uniqueCheerers[0]} and ${otherCount} other${
+            otherCount === 1 ? "" : "s"
+          } cheered you on!`,
+        });
+      }
+    }
+
+    if (incomingRequests.length > 0) {
+      items.push({
+        emoji: "💌",
+        text:
+          incomingRequests.length === 1
+            ? `${incomingRequests[0].name} sent you a friend request.`
+            : `${incomingRequests.length} people sent you friend requests.`,
+      });
+    }
+
+    items.push({
+      emoji: "📅",
+      text: `You have ${REMAINING_DAILY_CHALLENGES} challenge${
+        REMAINING_DAILY_CHALLENGES === 1 ? "" : "s"
+      } left today!`,
+    });
+
+    items.push({
+      emoji: "🔥",
+      text: `Your streak is ${streak} day${streak === 1 ? "" : "s"} now.`,
+    });
+
+    return items;
+  }, [incomingRequests, sortedCheers, streak]);
+
+  const announcement =
+    announcementItems.length > 0
+      ? announcementItems[announceIdx % announcementItems.length]
+      : null;
 
   const handleAccept = async (request: FriendSummary) => {
     if (!user || !userDoc) return;
@@ -275,7 +319,9 @@ export default function FriendsScreen() {
     if (!announcementsVisible) return;
 
     let cancelled = false;
-    const isLast = announceIdx >= ANNOUNCEMENTS.length - 1;
+    const isLast =
+      announcementItems.length > 0 &&
+      announceIdx >= announcementItems.length - 1;
 
     const timeout = setTimeout(() => {
       Animated.timing(fadeAnim, {
@@ -308,7 +354,7 @@ export default function FriendsScreen() {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [announceIdx, fadeAnim, announcementsVisible]);
+}, [announceIdx, fadeAnim, announcementsVisible, announcementItems.length]);
 
   useEffect(() => {
     if (!announcementsVisible) return;
@@ -349,8 +395,6 @@ export default function FriendsScreen() {
       if (finished) outlineAnim.setValue(0);
     });
   }, [announceIdx, outlineAnim, announcementsVisible]);
-
-  const announcement = ANNOUNCEMENTS[announceIdx];
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>

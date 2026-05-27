@@ -23,7 +23,7 @@ export default function LoginScreen() {
       await logIn(email, password);
       router.replace("/");
     } catch (err: any) {
-      setError("Incorrect email or password. Please try again.")
+      setError("Incorrect email or password. Please try again.");
     }
   }
 
@@ -32,7 +32,7 @@ export default function LoginScreen() {
       await signUp(email, password);
       router.replace("/");
     } catch (err: any) {
-      setError(err.message);
+      setError(cleanFirebaseError(err));
     }
   }
 
@@ -60,17 +60,30 @@ export default function LoginScreen() {
         <View style={styles.tabRow}>
           <Pressable
             style={[styles.tab, mode === "login" && styles.tabActive]}
-            onPress={() => {setMode("login"); setError("");}}
+            onPress={() => {
+              setMode("login");
+              setError("");
+            }}
           >
-            <Text style={[styles.tabText, mode === "login" && styles.tabTextActive]}>
+            <Text
+              style={[styles.tabText, mode === "login" && styles.tabTextActive]}
+            >
               Log In
             </Text>
           </Pressable>
           <Pressable
             style={[styles.tab, mode === "signup" && styles.tabActive]}
-            onPress={() => {setMode("signup"); setError("");}}
+            onPress={() => {
+              setMode("signup");
+              setError("");
+            }}
           >
-            <Text style={[styles.tabText, mode === "signup" && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                mode === "signup" && styles.tabTextActive,
+              ]}
+            >
               Sign Up
             </Text>
           </Pressable>
@@ -104,7 +117,10 @@ export default function LoginScreen() {
 
         {/* Primary button */}
         <Pressable
-          style={({ pressed }) => [styles.primaryBtn, pressed && styles.primaryBtnPressed]}
+          style={({ pressed }) => [
+            styles.primaryBtn,
+            pressed && styles.primaryBtnPressed,
+          ]}
           onPress={mode === "login" ? handleLogin : handleSignup}
         >
           <Text style={styles.primaryBtnText}>
@@ -127,7 +143,9 @@ export default function LoginScreen() {
         </View>
 
         {/* Switch mode */}
-        <Pressable onPress={() => setMode(mode === "login" ? "signup" : "login")}>
+        <Pressable
+          onPress={() => setMode(mode === "login" ? "signup" : "login")}
+        >
           <Text style={styles.switchText}>
             {mode === "login"
               ? "Don't have an account? Sign up"
@@ -138,6 +156,22 @@ export default function LoginScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+const cleanFirebaseError = (error: any) => {
+  // Map specific Firebase error codes to friendly messages
+  if (error.code === "auth/weak-password") {
+    return "Password should be at least 6 characters";
+  }
+  if (error.code === "auth/email-already-in-use") {
+    return "Email already in use";
+  }
+
+  // Generic cleanup: remove "Firebase: " prefix and error code in parentheses
+  return (error.message || "")
+    .replace(/^Firebase: /, "")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim();
+};
 
 const MINT = "#d6f0ed";
 const DARK_MINT = "#4aab9e";
