@@ -5,6 +5,7 @@ import {
   increment,
   setDoc,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
@@ -35,4 +36,18 @@ export async function getPets(userId: string) {
     id: doc.id,
     ...doc.data(),
   }));
+}
+
+// New: simple pet progress helpers stored on the user document under `petProgress`.
+export async function getPetProgress(userId: string) {
+  const userRef = doc(db, "users", userId);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) return {};
+  const data = snap.data();
+  return (data as any).petProgress ?? {};
+}
+
+export async function setPetProgress(userId: string, progress: any) {
+  const userRef = doc(db, "users", userId);
+  await updateDoc(userRef, { petProgress: progress });
 }

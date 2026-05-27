@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { useAuth } from "../src/auth/useAuth";
+import { getPetProgress, setPetProgress } from "../src/db/pets";
 
 export type PetId = "p1" | "p2" | "p3" | "p4" | "p5";
 
@@ -84,6 +92,58 @@ const PetsContext = createContext<PetsContextType | undefined>(undefined);
 
 export function PetsProvider({ children }: { children: React.ReactNode }) {
   const [pets, setPets] = useState<PetState[]>(INITIAL_PETS);
+  const { user } = useAuth();
+
+  // Load pet progress from DB when user signs in
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!user) return;
+      try {
+        const progress = await getPetProgress(user.uid);
+        if (!mounted) return;
+        if (progress && typeof progress === "object") {
+          setPets((prev) =>
+            prev.map((p) => {
+              const prog = progress[p.id];
+              if (!prog) return p;
+              const collected = Math.min(
+                p.required,
+                prog.collected ?? p.collected,
+              );
+              const unlocked =
+                prog.unlocked ?? p.unlocked ?? collected >= p.required;
+              return { ...p, collected, unlocked };
+            }),
+          );
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  // Persist pet progress when pets change (debounced)
+  const saveTimeout = useRef<any>(null);
+  useEffect(() => {
+    if (!user) return;
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => {
+      const progress: Record<string, { collected: number; unlocked: boolean }> =
+        {};
+      pets.forEach((p) => {
+        progress[p.id] = { collected: p.collected, unlocked: p.unlocked };
+      });
+      setPetProgress(user.uid, progress).catch(() => {});
+    }, 600);
+    return () => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    };
+  }, [pets, user]);
   return (
     <PetsContext.Provider value={{ pets, setPets }}>
       {children}
